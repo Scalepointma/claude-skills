@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "scalepoint-skills",
+  "description": "ScalePoint M&A internal Claude Code skills — report format, seller sub-ICP, and more.",
+  "owner": { "name": "ScalePoint M&A" },
+  "plugins": [
+    {
+      "name": "scalepoint-report-format",
+      "description": "Produces boardroom-quality, brand-compliant ScalePoint PDFs (CIMs, teasers, valuation reports, brochures, proposals) using ReportLab.",
+      "author": { "name": "ScalePoint M&A" },
+      "category": "productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Scalepointma/claude-skills.git",
+        "path": "plugins/scalepoint-report-format"
+      }
+    },
+    {
+      "name": "scalepoint-seller-subicp",
+      "description": "Identify a seller's Sub-ICP (A–G) during intake conversations and route through the Match Matrix.",
+      "author": { "name": "ScalePoint M&A" },
+      "category": "productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Scalepointma/claude-skills.git",
+        "path": "plugins/scalepoint-seller-subicp"
+      }
+    }
+  ]
+}
