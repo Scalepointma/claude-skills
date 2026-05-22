@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "scalepoint-skills",
-  "description": "ScalePoint M&A internal Claude Code skills — report format, seller sub-ICP, and more.",
+  "description": "ScalePoint M&A internal Claude Code skills — report format, seller sub-ICP, meeting CRM logging, and more.",
   "owner": { "name": "ScalePoint M&A" },
   "plugins": [
     {
@@ -17,13 +17,24 @@
     },
     {
       "name": "scalepoint-seller-subicp",
-      "description": "Identify a seller's Sub-ICP (A–G) during intake conversations and route through the Match Matrix.",
+      "description": "Identify a seller's Sub-ICP (A-G) during intake conversations and route through the Match Matrix.",
       "author": { "name": "ScalePoint M&A" },
       "category": "productivity",
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/Scalepointma/claude-skills.git",
         "path": "plugins/scalepoint-seller-subicp"
+      }
+    },
+    {
+      "name": "scalepoint-meeting-crm",
+      "description": "Transcribe a meeting recording and populate a seller deal or buyer profile in HubSpot. Handles audio files via whisper and pasted transcripts.",
+      "author": { "name": "ScalePoint M&A" },
+      "category": "productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Scalepointma/claude-skills.git",
+        "path": "plugins/scalepoint-meeting-crm"
       }
     }
   ]
