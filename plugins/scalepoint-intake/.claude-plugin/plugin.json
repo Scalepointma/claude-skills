@@ -1,0 +1,7 @@
+{
+  "name": "scalepoint-intake",
+  "version": "1.0.0",
+  "description": "Guides the user through a buyer or seller intake conversation, collects all HubSpot-mapped fields in grouped asks, shows a summary for review, then creates Company + Contact (+ Deal for sellers) records in HubSpot with full field mapping.",
+  "author": { "name": "ScalePoint M&A" },
+  "keywords": ["scalepoint", "intake", "buyer", "seller", "hubspot", "crm", "buy-box", "profile", "onboarding"]
+}
