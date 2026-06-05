@@ -26,24 +26,45 @@ in the skill folder. **Read these BEFORE writing ANY code:**
 ```python
 import glob, os
 
-SKILL_LOCAL = "/Users/delta/delta/templates/scalepoint-report-format"
+# Path search order:
+# 1. Delta Mac Mini (local development machine)
+# 2. Claude plugin install location (any machine after `claude plugins add`)
+# 3. Cowork / remote session fallback
+SEARCH_PATTERNS = [
+    "/Users/delta/delta/templates/scalepoint-report-format",
+    os.path.expanduser("~/.claude/plugins/scalepoint-report-format"),
+    os.path.expanduser("~/.claude/skills/scalepoint-report-format"),
+    os.path.expanduser("~/Library/Application Support/claude/plugins/scalepoint-report-format"),
+]
 
 ref_dir = None
-# Local Delta machine path — always check first
-if os.path.isdir(SKILL_LOCAL):
-    ref_dir = SKILL_LOCAL
-else:
-    # Cowork / remote session fallback
+for path in SEARCH_PATTERNS:
+    if os.path.isdir(path) and os.path.isfile(os.path.join(path, "BRAND-GUIDE.md")):
+        ref_dir = path
+        break
+
+if ref_dir is None:
+    # Cowork / remote session glob fallback
     for pattern in [
         "/sessions/*/mnt/*/scalepoint-report-format*/BRAND-GUIDE.md",
         "/sessions/*/mnt/**/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/.claude/skills/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/outputs/scalepoint-report-format/BRAND-GUIDE.md",
+        "/sessions/*/mnt/.claude/skills/scalepoint*/BRAND-GUIDE.md",
+        os.path.expanduser("~/.claude/*/scalepoint-report-format*/BRAND-GUIDE.md"),
     ]:
         found = glob.glob(pattern, recursive=True)
         if found:
-            ref_dir = found[0].rsplit("/", 1)[0]
+            ref_dir = os.path.dirname(found[0])
             break
+
+if ref_dir is None:
+    raise FileNotFoundError(
+        "Cannot find scalepoint-report-format skill files. "
+        "Install via: claude plugins add https://github.com/Scalepointma/claude-skills"
+    )
+
+scripts_dir = os.path.join(ref_dir, "scripts")
+assets_dir  = os.path.join(ref_dir, "assets")
+import sys; sys.path.insert(0, scripts_dir)
 ```
 
 Read from `ref_dir`:
