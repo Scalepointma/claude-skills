@@ -36,6 +36,28 @@
         "url": "https://github.com/Scalepointma/claude-skills.git",
         "path": "plugins/scalepoint-meeting-crm"
       }
+    },
+    {
+      "name": "scalepoint-intake",
+      "description": "Guided buyer or seller intake conversation that collects all required HubSpot fields and writes the record — Company, Contact, and Deal — in one flow.",
+      "author": { "name": "ScalePoint M&A" },
+      "category": "productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Scalepointma/claude-skills.git",
+        "path": "plugins/scalepoint-intake"
+      }
+    },
+    {
+      "name": "scalepoint-teaser",
+      "description": "Build a confidential buyer teaser — collects deal data, verifies EBITDA, outputs a branded HTML teaser document in ScalePoint visual style.",
+      "author": { "name": "ScalePoint M&A" },
+      "category": "productivity",
+      "source": {
+        "source": "git-subdir",
+        "url": "https://github.com/Scalepointma/claude-skills.git",
+        "path": "plugins/scalepoint-teaser"
+      }
     }
   ]
 }
