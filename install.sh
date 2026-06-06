@@ -1,0 +1,10 @@
+#!/bin/sh
+BASE="https://raw.githubusercontent.com/Scalepointma/claude-skills/main/plugins"
+DIR="$HOME/.claude/skills"
+mkdir -p "$DIR"
+curl -s "$BASE/scalepoint-report-format/agents/scalepoint-report-format.md" -o "$DIR/scalepoint-report-format.md"
+curl -s "$BASE/scalepoint-intake/agents/scalepoint-intake.md" -o "$DIR/scalepoint-intake.md"
+curl -s "$BASE/scalepoint-teaser/agents/scalepoint-teaser.md" -o "$DIR/scalepoint-teaser.md"
+curl -s "$BASE/scalepoint-meeting-crm/agents/scalepoint-meeting-crm.md" -o "$DIR/scalepoint-meeting-crm.md"
+curl -s "$BASE/scalepoint-seller-subicp/agents/scalepoint-seller-subicp.md" -o "$DIR/scalepoint-seller-subicp.md"
+echo "Installed: $(ls $DIR/*.md | wc -l | tr -d ' ') skills"
