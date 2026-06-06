@@ -2,6 +2,21 @@
   "name": "scalepoint-teaser",
   "version": "1.0.0",
   "description": "Produces a ScalePoint M&A confidential buyer teaser — collects business data, verifies EBITDA, generates project reference, and outputs both plain markdown and a branded HTML document in ScalePoint visual style.",
-  "author": { "name": "ScalePoint M&A" },
-  "keywords": ["scalepoint", "teaser", "blind-profile", "cim", "pdf", "brand", "html", "buyer", "marketing"]
+  "author": {
+    "name": "ScalePoint M&A"
+  },
+  "keywords": [
+    "scalepoint",
+    "teaser",
+    "blind-profile",
+    "cim",
+    "pdf",
+    "brand",
+    "html",
+    "buyer",
+    "marketing"
+  ],
+  "agents": [
+    "./agents/scalepoint-teaser.md"
+  ]
 }

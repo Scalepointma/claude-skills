@@ -2,6 +2,18 @@
   "name": "scalepoint-seller-subicp",
   "version": "0.1.0",
   "description": "ScalePoint internal skill: identify a seller's Sub-ICP (A–G) during intake conversations and route them through the Match Matrix.",
-  "author": { "name": "ScalePoint M&A" },
-  "keywords": ["scalepoint", "seller", "sub-icp", "intake", "match-matrix", "hubspot"]
+  "author": {
+    "name": "ScalePoint M&A"
+  },
+  "keywords": [
+    "scalepoint",
+    "seller",
+    "sub-icp",
+    "intake",
+    "match-matrix",
+    "hubspot"
+  ],
+  "agents": [
+    "./agents/scalepoint-seller-subicp.md"
+  ]
 }
