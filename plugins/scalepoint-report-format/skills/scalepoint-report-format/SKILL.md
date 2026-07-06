@@ -21,51 +21,19 @@ description: >
 ## Step 0: Read the Full Reference Files (MANDATORY)
 
 This skill is intentionally lean. Full design specs and helper modules live
-in the skill folder. **Read these BEFORE writing ANY code:**
+**in this skill's folder** — the directory containing this SKILL.md. You know
+that path because you just read this file; call it `ref_dir`. Never search
+absolute or machine-specific paths for it.
 
 ```python
-import glob, os
-
-# Path search order:
-# 1. Delta Mac Mini (local development machine)
-# 2. Claude plugin install location (any machine after `claude plugins add`)
-# 3. Cowork / remote session fallback
-SEARCH_PATTERNS = [
-    "/Users/delta/delta/templates/scalepoint-report-format",
-    os.path.expanduser("~/.claude/plugins/scalepoint-report-format"),
-    os.path.expanduser("~/.claude/skills/scalepoint-report-format"),
-    os.path.expanduser("~/Library/Application Support/claude/plugins/scalepoint-report-format"),
-]
-
-ref_dir = None
-for path in SEARCH_PATTERNS:
-    if os.path.isdir(path) and os.path.isfile(os.path.join(path, "BRAND-GUIDE.md")):
-        ref_dir = path
-        break
-
-if ref_dir is None:
-    # Cowork / remote session glob fallback
-    for pattern in [
-        "/sessions/*/mnt/*/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/**/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/.claude/skills/scalepoint*/BRAND-GUIDE.md",
-        os.path.expanduser("~/.claude/*/scalepoint-report-format*/BRAND-GUIDE.md"),
-    ]:
-        found = glob.glob(pattern, recursive=True)
-        if found:
-            ref_dir = os.path.dirname(found[0])
-            break
-
-if ref_dir is None:
-    raise FileNotFoundError(
-        "Cannot find scalepoint-report-format skill files. "
-        "Install via: claude plugins add https://github.com/Scalepointma/claude-skills"
-    )
-
+import sys, os
+ref_dir = "<directory containing this SKILL.md>"
 scripts_dir = os.path.join(ref_dir, "scripts")
 assets_dir  = os.path.join(ref_dir, "assets")
-import sys; sys.path.insert(0, scripts_dir)
+sys.path.insert(0, scripts_dir)
 ```
+
+**Read these BEFORE writing ANY code:**
 
 Read from `ref_dir`:
 1. **BRAND-GUIDE.md** — colors, fonts, page frame, element heights, visual
@@ -100,36 +68,18 @@ Before choosing ANY layouts, inventory the source content:
 ## Step 2: Asset Discovery & Module Import
 
 ```bash
-pip install reportlab Pillow pdf2image --break-system-packages
+python3 -c "import reportlab, PIL, pypdfium2" 2>/dev/null || \
+  python3 -m pip install reportlab Pillow pypdfium2 --quiet --break-system-packages
 ```
 
 ```python
-import sys, glob, os
-
-SKILL_LOCAL = "/Users/delta/delta/templates/scalepoint-report-format"
-
-scripts_dir = None
-if os.path.isdir(os.path.join(SKILL_LOCAL, "scripts")):
-    scripts_dir = os.path.join(SKILL_LOCAL, "scripts")
-else:
-    for pattern in [
-        "/sessions/*/mnt/*/scalepoint-report-format*/scripts",
-        "/sessions/*/mnt/**/scalepoint-report-format*/scripts",
-        "/sessions/*/mnt/.claude/skills/scalepoint*/scripts",
-        "/sessions/*/mnt/outputs/scalepoint-report-format/scripts",
-    ]:
-        found = glob.glob(pattern, recursive=True)
-        if found:
-            scripts_dir = found[0]
-            break
-
-if scripts_dir:
-    sys.path.insert(0, scripts_dir)
+import sys, os
+sys.path.insert(0, scripts_dir)   # scripts_dir / assets_dir from Step 0
 
 from scalepoint_pdf import *
 from reportlab.pdfgen import canvas
 
-assets = discover_assets()
+assets = discover_assets(extra_dirs=[assets_dir])
 ```
 
 Available assets (canonical names): `logo-primary`, `logo-stacked`,
@@ -262,10 +212,10 @@ All drawing functions return the y-position after drawing, for stacking.
 ## Step 6: Visual Verification (MANDATORY)
 
 ```python
-from pdf2image import convert_from_path
-images = convert_from_path('output.pdf', dpi=150)
-for i, img in enumerate(images):
-    img.save(f'page_{i+1}.png')
+import pypdfium2 as pdfium
+doc = pdfium.PdfDocument('output.pdf')
+for i, page in enumerate(doc):
+    page.render(scale=2).to_pil().save(f'page_{i+1}.png')
 ```
 
 View EVERY page as PNG. Check against the 29-item anti-pattern checklist
