@@ -22,6 +22,21 @@ structured, grouped conversation, then writes all data directly into HubSpot.
 This skill is self-contained — all field definitions, enum values, and HubSpot write
 instructions are included here. No need to consult another document.
 
+> **Schema source of truth:** Appendix A of `Chevron-Customer-Journey.md` (SharePoint/repo)
+> is the schema source of truth for every HubSpot property name and enum value in this skill.
+> If a write fails on a property name or value, check Appendix A — do not improvise a field name.
+
+---
+
+## Step 0 — Is a HubSpot record warranted at all?
+
+**No HubSpot record is created until an engagement is signed, or the deal lead explicitly
+says otherwise.** Pre-engagement research, prospect lists, and "maybe" contacts stay in
+Excel/SharePoint. If the staff member is capturing pre-engagement research, offer to
+structure it for the Excel tracker instead and stop here. Only proceed when the contact is a
+signed engagement, or the deal lead (Jodi, or whoever she designates for this deal) has
+explicitly said this person belongs in HubSpot.
+
 ---
 
 ## Step 1 — Determine intake type
@@ -61,10 +76,12 @@ single message so the user can answer in one go. Do not ask one field per messag
 >    - Owner-Operator
 >    - Searcher – Broker (individual searching through a broker channel)
 > 7. **Buyer type** — choose one:
->    - Individual (self-funded individual buyer)
->    - PE-Financial (fund, LP capital, hold period)
->    - Strategic-Synergetic (existing operating company adding a bolt-on)
-> 8. **How did they come to us?** (direct inbound, referral intro, trade show, LinkedIn,
+>    - Individual Buyer (self-funded individual buyer)
+>    - PE-Financial Buyer (fund, LP capital, hold period)
+>    - Strategic-Synergetic Buyer (existing operating company adding a bolt-on)
+> 8. **Buyer status** — are they actively pursuing acquisitions right now (**active buyer**)
+>    or interested but not actively in the market (**potential buyer**)?
+> 9. **How did they come to us?** (direct inbound, referral intro, trade show, LinkedIn,
 >    podcast, website, cold outreach, other — if referral, who referred them?)
 
 ### BUYER Group 2 — Buy box
@@ -72,48 +89,52 @@ single message so the user can answer in one go. Do not ask one field per messag
 > Now the buy box:
 >
 > 1. **Target industries** — plain English, comma-separated
->    (e.g. "automotive services, HVAC, plumbing")
-> 2. **Target geographies** — provinces or regions
+>    (e.g. "automotive services, restaurants, plumbing"). I'll map these to the canonical
+>    industry slugs and confirm the mapping with you.
+> 2. **Industries they will NOT touch** — same format (exclusion filter; "none" is fine)
+> 3. **Target geographies** — provinces or regions they WANT
 >    (e.g. "Alberta, BC" or "Western Canada")
-> 3. **Deal size range** — minimum and maximum deal value in CAD
->    (e.g. "$500K to $3M" — enter 0 for no minimum if truly open)
-> 4. **Minimum EBITDA** they'll consider (CAD, or "none" if not a constraint)
-> 5. **Minimum revenue** they'll consider (CAD, or "none")
+> 4. **Geographies they will NOT consider** ("none" is fine)
+> 5. **Revenue range** — minimum and maximum annual revenue they'll consider (CAD; either
+>    end can be open)
+> 6. **EBITDA range** — minimum and maximum EBITDA they'll consider (CAD; either end can
+>    be open)
+
+**Industry slug mapping (mandatory).** The industries live in two multi-select properties —
+`buy_box_industries_targeted` and `buy_box_industries_avoided` — whose internal values are
+the canonical 85-slug vocabulary (see quick-reference at the bottom of this skill). Map the
+user's plain-English words to the closest slug(s) and echo the mapping back for confirmation
+(e.g. "automotive services" → `automotive`; "HVAC" → closest fits are `construction`,
+`repair-maintenance`, `electrical` — confirm which). **NEVER invent a slug.** The slug
+vocabulary must match BASAB's URLs exactly (lockstep rule: a slug exists in BASAB URL
+routing, the canonical slug file, and the HubSpot enums simultaneously, or not at all) —
+an invented slug silently breaks Layer 1 matching and is very hard to diagnose later. If no
+slug fits, pick the nearest real slug(s), confirm with the user, and put the exact
+plain-English wording in the intake Note.
 
 ### BUYER Group 3 — Tags and narrative
 
 > A few more items:
 >
-> 1. **Sector tags** — pick all that apply from this list (just list the ones that fit):
->
->    *Sector:* auto-services, hvac, plumbing, electrical, landscaping, cleaning-commercial,
->    cleaning-residential, childcare, dental-medical, veterinary, pharmacy, fitness,
->    food-beverage, grocery-specialty, retail-general, ecommerce, manufacturing, distribution,
->    technology-saas, professional-services, marketing-agency, property-management, staffing,
->    funeral, jewelry-watch, pet-services
->
->    *Geography:* alberta, bc, ontario, quebec, prairie-provinces, western-canada, national
->
->    *Deal size:* sub-1m, 1m-3m, 3m-7m, 7m-15m, 15m-plus
->
->    *Buyer type:* searcher-eta, owner-operator, search-fund, pe-fund, family-office,
->    independent-sponsor, holdco, strategic-acquirer
->
->    *Other:* franchise-experience, absentee-ok, semi-absentee-ok, turnaround-ok,
->    real-estate-included, real-estate-preferred, vendor-financing-required, urgent-timeline
+> 1. **Buyer tags** — pick all that apply from the 46-tag vocabulary (see quick-reference
+>    at the bottom of this skill; categories: operational style, workforce, customer profile,
+>    deal structure, real estate, brand/regulation, geography, buyer style, timeline, asset
+>    intensity). Industry and geography are deliberately NOT tags — they live in the buy box
+>    fields above. Only use tags from the list; the vocabulary is governed and each tag maps
+>    to seller sub-ICPs.
 >
 > 2. **Buyer narrative** — a short paragraph (3–6 sentences) describing who they are, what
->    they're looking for, and why. This goes into HubSpot as-is and may be used for matching.
->    If they have a pitch deck or one-pager, ask them to share the key points verbally and
->    write it up yourself.
+>    they're looking for, and why. This is Layer 3 matching material. It goes into the
+>    intake Note engagement and into `buy_box_description`. If they have a pitch deck or
+>    one-pager, ask them to share the key points verbally and write it up yourself.
 
 ### BUYER Group 4 — Anything else
 
 > Last check:
 >
 > 1. **Urgency / timeline** — are they actively looking to close within a certain window?
-> 2. **Anything they will NOT buy** — deal-breakers (geography, industry, business model,
->    owner-operator dependency, etc.)
+> 2. **Anything they will NOT buy** — deal-breakers beyond the industry/geography exclusions
+>    already captured (business model, owner-operator dependency, etc.)
 > 3. **Other notes** — anything that doesn't fit the fields above but is useful for matching
 >    (e.g. "has LOI experience", "prefers businesses with real estate", "wants a warm intro
 >    to seller before NDA")
@@ -131,7 +152,8 @@ single message so the user can answer in one go. Do not ask one field per messag
 > 3. **Seller's phone** (optional)
 > 4. **Business name** — if the seller doesn't want the name disclosed yet, use a short
 >    blind description (e.g. "Southern Alberta HVAC company")
-> 5. **Industry / what the business does** (plain English, 1–2 sentences)
+> 5. **Industry / what the business does** (plain English, 1–2 sentences — I'll map to the
+>    canonical industry slugs and confirm)
 > 6. **City and province** where the business operates
 > 7. **Years in operation**
 > 8. **Number of employees** (full-time + part-time, approximate is fine)
@@ -141,12 +163,18 @@ single message so the user can answer in one go. Do not ask one field per messag
 > Now the financials:
 >
 > 1. **Most recent full fiscal year revenue** (CAD)
-> 2. **Most recent EBITDA** (CAD — owner earnings / SDE if they call it that is fine)
+> 2. **Most recent EBITDA** (CAD — if the seller quotes owner earnings / SDE, say so; see
+>    the EBITDA rule below)
 > 3. **Fiscal year end** (month name, e.g. "December", "March")
-> 4. **Asking price** — if the seller has one in mind (or "open to valuation")
+> 4. **Asking price** — a single number or a range, if the seller has one in mind
+>    (or "open to valuation")
 > 5. **Transaction structure preference** — Share sale, Asset sale, or Either/don't know
 > 6. **Target close timeline** — when do they want to be done? (e.g. "this year", "12–18 months",
 >    "flexible")
+
+**EBITDA vs SDE.** If the seller frames the number as "what I take home", "before my
+salary", or owner earnings, that is SDE — record it in the Note with the qualifier, and only
+write it to the EBITDA field if it genuinely is EBITDA.
 
 ### SELLER Group 3 — Narrative and motivation
 
@@ -177,8 +205,10 @@ single message so the user can answer in one go. Do not ask one field per messag
 >    - G — Broker-Represented (already has a broker, co-brokerage scenario)
 > 2. **Codename** — if a wine codename has already been assigned for this seller, enter it.
 >    If not yet assigned, leave blank (we'll assign one before any external communication).
-> 3. **How did they come to us?** (referral, LinkedIn, podcast, website, cold outreach, other)
-> 4. **Any other notes** — confidentiality concerns, seller's emotional state, key staff
+> 3. **Blind listing?** — will the public listing hide the business identity (blind title,
+>    province only)? If yes, what is the blind title?
+> 4. **How did they come to us?** (referral, LinkedIn, podcast, website, cold outreach, other)
+> 5. **Any other notes** — confidentiality concerns, seller's emotional state, key staff
 >    dependencies, anything that shapes how we handle the engagement
 
 ---
@@ -186,9 +216,8 @@ single message so the user can answer in one go. Do not ask one field per messag
 ## Step 4 — Show summary for review
 
 Before writing anything to HubSpot, present a clean summary of all collected data.
-Wait for explicit confirmation ("looks good", "correct", "go ahead") before proceeding.
 Accept corrections inline — if the user says "change the EBITDA to $280K", update the
-summary and confirm the change before writing.
+summary and confirm the change before moving on.
 
 ### BUYER summary format
 
@@ -199,7 +228,8 @@ CONTACT
   Name:              [firstname] [lastname]
   Email:             [email]
   Phone:             [phone or —]
-  Buyer type:        [Individual / PE-Financial / Strategic-Synergetic]
+  Buyer type:        [Individual Buyer / PE-Financial Buyer / Strategic-Synergetic Buyer]
+  Relationship:      [potential_buyer / active_buyer]
   How they found us: [source]
 
 COMPANY
@@ -208,17 +238,18 @@ COMPANY
   Website:           [domain or —]
 
 BUY BOX
-  Industries:        [buy_box_industry]
-  Geography:         [buy_box_geography]
-  Deal size:         $[min] – $[max]
-  Min EBITDA:        $[value or —]
-  Min revenue:       $[value or —]
+  Industries targeted: [slugs, confirmed mapping]
+  Industries avoided:  [slugs or —]
+  Geography yes:       [provinces/regions]
+  Geography no:        [provinces/regions or —]
+  Revenue range:       $[buy_box_revenue_min] – $[buy_box_revenue_max]
+  EBITDA range:        $[buy_box_ebitda_min] – $[buy_box_ebitda_max]
 
-TAGS
-  [comma-separated list of all selected tags]
+TAGS (buyer_tags)
+  [comma-separated list of selected tags from the 46-tag vocabulary]
 
-NARRATIVE
-  [buyer_narrative paragraph]
+NARRATIVE (→ Note + buy_box_description)
+  [narrative paragraph]
 
 TIMELINE / NOTES
   [urgency, deal-breakers, other notes]
@@ -239,28 +270,29 @@ CONTACT (SELLER)
 
 BUSINESS
   Name:           [business name]
-  Industry:       [industry]
+  Industry:       [slug(s), confirmed mapping — plus plain English]
   Location:       [city], [province]
-  Years operating:[years_in_operation]
-  Employees:      [num_employees]
+  Years operating:[years in operation]
+  Employees:      [employee count]
   EL signed:      [yes / no / TBD]
   Codename:       [codename or — not yet assigned]
+  Blind listing:  [yes + blind title / no]
 
 FINANCIALS
-  Revenue (last FY): $[revenue_last_fy]  (FY ends: [month])
-  EBITDA (last FY):  $[ebitda_last_fy]
-  Asking price:      $[asking_price or open]
+  Revenue (last FY): $[listing_revenue]  (FY ends: [month])
+  EBITDA (last FY):  $[listing_ebitda]  [qualifier if SDE/owner earnings]
+  Asking price:      $[listing_ask_low] – $[listing_ask_high] (or open)
   Transaction type:  [Share / Asset / Either]
-  Timeline:          [seller_timeline]
+  Timeline:          [sale_timeline]
 
 CLASSIFICATION
   Sub-ICP:        [letter — name]
-  Reason for sale:[seller_motivation]
+  Reason for sale:[reason_for_sale]
 
 NARRATIVE
-  Description: [business_description]
-  Highlights:  [investment_highlights]
-  Growth opps: [growth_opportunities]
+  Description: [business description]
+  Highlights:  [investment highlights]
+  Growth opps: [growth opportunities]
 
 NOTES
   [other notes]
@@ -270,10 +302,35 @@ Flag anything blank or uncertain with `⚠ Not provided`.
 
 ---
 
-## Step 5 — Write to HubSpot
+## Step 5 — RECORD APPROVAL GATE (mandatory — do not skip)
 
-After confirmation, use HubSpot MCP tools to create or update records in this order.
+Nothing is written to HubSpot until this gate passes. The gate has two parts:
+
+1. **Show the specific records.** After the summary is corrected, state exactly which
+   HubSpot records will be created or updated (Company X, Contact Y, Deal Z — create vs
+   update, with the key property values).
+
+2. **Get explicit load approval from Jodi (or the deal lead she designates for this deal).**
+   Approval means words to the effect of **"load these"** / "write them to HubSpot" /
+   "approved, create the records" — from Jodi or the designated deal lead specifically.
+   A staff member confirming "the summary looks right" is **NOT** approval to write.
+   Accuracy confirmation and load approval are two different things.
+
+If the approver asks for changes, apply them, re-present the record list, and pass the gate
+again. If approval is not given, stop — offer to save the structured intake as a draft note
+in chat or to the Excel/SharePoint tracker instead.
+
+---
+
+## Step 6 — Write to HubSpot
+
+After the gate passes, use HubSpot MCP tools to create or update records in this order.
 Search before creating to avoid duplicates.
+
+**Enum discipline:** every enumeration property accepts only its internal enum values. For
+any enum not fully listed in this skill (`buy_box_geography_yes`, `buy_box_geography_no`,
+`deal_structures_seller_will_accept`, `reason_for_sale`, `sale_timeline`, `source_funnel_buyer`,
+`source_funnel_seller`), fetch the live options with `hubspot-get-property` before writing.
 
 ### BUYER — HubSpot write sequence
 
@@ -285,7 +342,7 @@ If not found, create with:
 | HubSpot field | Value |
 |---|---|
 | `name` | Company name (or "Individual — [First Last]") |
-| `sp_company_type` | `buyer_lead` |
+| `sp_company_type` | `buyer` (multi-select — append, never overwrite existing values) |
 | `firm_type` | One of: `PE_Fund`, `Family_Office`, `Independent_Sponsor`, `Search_Fund`, `Holdco`, `Strategic_Acquirer`, `Searcher_ETA`, `Owner_Operator`, `Searcher_Broker` |
 | `domain` | Website domain if provided |
 
@@ -299,15 +356,18 @@ Search `contacts` by email. If found, update. If not found, create with:
 | `lastname` | Last name |
 | `email` | Email |
 | `phone` | Phone |
-| `contact_relationship` | Source (e.g. `direct_inbound`, `referral_intro`, `trade_show`, `linkedin`, `podcast`, `website`) |
-| `buyer_type` | `Individual`, `PE-Financial`, or `Strategic-Synergetic` |
-| `buy_box_industry` | Plain-English industry string |
-| `buy_box_geography` | Provinces/regions string |
-| `buy_box_deal_size_min` | Integer (CAD) |
-| `buy_box_deal_size_max` | Integer (CAD) |
-| `buy_box_ebitda_min` | Integer (CAD) or blank |
+| `contact_relationship` | `potential_buyer` or `active_buyer` (multi-select — append, never overwrite; see canonical values in quick-reference) |
+| `buyer_type` | Internal value: `individual_buyer`, `pe_financial_buyer`, or `strategic_synergetic_buyer` |
+| `buy_box_industries_targeted` | Multi-select of canonical slugs (confirmed mapping only — never invented) |
+| `buy_box_industries_avoided` | Multi-select of canonical slugs (or leave blank) |
+| `buy_box_geography_yes` | Multi-select — fetch live options first |
+| `buy_box_geography_no` | Multi-select — fetch live options first (or leave blank) |
 | `buy_box_revenue_min` | Integer (CAD) or blank |
-| `buyer_narrative` | Full narrative paragraph |
+| `buy_box_revenue_max` | Integer (CAD) or blank |
+| `buy_box_ebitda_min` | Integer (CAD) or blank |
+| `buy_box_ebitda_max` | Integer (CAD) or blank |
+| `buyer_tags` | Multi-select of selected tags from the 46-tag vocabulary |
+| `buy_box_description` | The buyer narrative paragraph (Layer 3 free text) |
 
 **3. Associate Contact to Company**
 
@@ -316,8 +376,10 @@ Use `batch-create-associations` or the association endpoint to link the Contact 
 **4. Add a note to the Contact**
 
 Create a note (engagement type: `NOTE`) on the Contact record with:
-- All selected tags formatted as a comma-separated list under the heading "Buy Box Tags:"
-- Deal-breakers and any other notes from Group 4
+- The full buyer narrative paragraph (verbatim)
+- The plain-English industry/geography wording as given, alongside the confirmed slug mapping
+- Deal-breakers, urgency/timeline, and any other notes from Group 4
+- How they came to us (source), including referrer name if applicable
 - Attribution: "Intake logged by [staff name if known, otherwise ScalePoint intake skill] on [today's date]"
 
 ---
@@ -331,9 +393,13 @@ Search `companies` by business name. If found, update. If not found, create with
 | HubSpot field | Value |
 |---|---|
 | `name` | Business name (or blind description) |
-| `sp_company_type` | `active_client` if EL signed, `prospect` if not |
 | `sp_sell_side_status` | `active_client` if EL signed, `prospect` if not |
-| `industry` | Plain-English industry |
+
+Do **not** set `sp_company_type` for a pure sell-side company — sell-side status lives
+exclusively in `sp_sell_side_status`; `sp_company_type` is for buy-side/network relationship
+types (`buyer`, `referrer`, `vendor`, `bd_partner`, `consulting_client`,
+`third_party_contact`, `unverified`). Put the plain-English industry description in the
+intake Note (the canonical industry slugs go on the Deal's `listing_industry`).
 
 **2. Find or create Contact**
 
@@ -345,36 +411,46 @@ Search `contacts` by email. If found, update. If not found, create with:
 | `lastname` | Last name |
 | `email` | Email |
 | `phone` | Phone |
-| `contact_relationship` | `seller_client` |
+| `contact_relationship` | `active_seller` (multi-select — append, never overwrite) |
 | `seller_sub_icp` | One of: `Valuation-Curious`, `Pre-Seller`, `Committed Main Street Seller`, `Sophisticated FSBO`, `Time-Pressured Seller`, `Franchise Resale`, `Broker-Represented` (or blank if not determined) |
+| `reason_for_sale` | Enum — fetch live options first; leave blank if unclear |
+| `sale_timeline` | Enum — fetch live options first; leave blank if unclear |
+| `deal_structures_seller_will_accept` | Enum — fetch live options first (share/asset/either preference) |
+| `seller_free_text_notes` | Key observations that don't fit structured fields |
 
 **3. Associate Contact to Company**
 
 Link the Contact to the Company record.
 
-**4. Create a Deal in the Listing pipeline**
+**4. Create a Deal in the LISTING pipeline**
+
+Seller listings are Deals in the **Listing pipeline** (stages include Prospect → EL Signed →
+Listing Draft → Approved + Published → Active → Under LOI → Closing → Closed-Won). Look up
+the actual pipeline and stage IDs at runtime via the HubSpot schema/property tools — do not
+hardcode IDs. (Buyer–listing pairs live in the separate Inquiry pipeline; that is NOT what
+this skill creates.)
 
 Create a new Deal with:
 
 | HubSpot field | Value |
 |---|---|
 | `dealname` | Business name (or blind description) — same as company name |
-| `pipeline` | Seller Listing pipeline (use the appropriate pipeline ID — search `deal_pipelines` if unsure) |
-| `dealstage` | "Prospect" stage (first stage of the Listing pipeline) |
-| `asking_price` | Integer (CAD) or blank |
-| `revenue_last_fy` | Integer (CAD) |
-| `ebitda_last_fy` | Integer (CAD) |
-| `fiscal_year_end` | Month name |
-| `business_description` | 2–4 sentence description |
-| `years_in_operation` | Integer |
-| `num_employees` | Integer |
-| `location_city` | City |
-| `location_province` | Province |
-| `transaction_structure` | `share_sale`, `asset_sale`, or `either` |
-| `seller_timeline` | Free text |
-| `seller_motivation` | Reason for selling |
-| `seller_subicp` | Same value as on Contact |
-| `codename` | Wine codename if assigned, otherwise blank |
+| `pipeline` | Listing pipeline ID (looked up at runtime) |
+| `dealstage` | "Prospect" stage ID (first stage of the Listing pipeline, looked up at runtime) |
+| `listing_industry` | Multi-select of canonical slugs (confirmed mapping only — never invented) |
+| `listing_location` | City |
+| `listing_province` | Province |
+| `listing_revenue` | Integer (CAD) |
+| `listing_ebitda` | Integer (CAD) — only if the number truly is EBITDA; SDE/owner earnings stays in the Note with its qualifier |
+| `listing_ask_low` | Integer (CAD) — lower end of asking range (or the single asking price) |
+| `listing_ask_high` | Integer (CAD) — upper end (same as low if a single number; blank if open to valuation) |
+| `listing_codename` | Wine codename if assigned, otherwise blank |
+| `is_blind_listing_deal` | Set if the listing is blind |
+| `blind_title_listing_deal` | The blind title, if blind |
+| `description` | 2–4 sentence business description |
+
+Fiscal year end, years in operation, and employee count have no Deal property — they go in
+the Deal note (step 6 below).
 
 **5. Associate Contact and Company to Deal**
 
@@ -385,12 +461,15 @@ Link both the Contact and the Company to the new Deal.
 Create a NOTE engagement on the Deal with:
 - Investment highlights (bullet points)
 - Growth opportunities (bullet points)
+- Fiscal year end, years in operation, employee count
+- EBITDA qualifier if the number given was SDE/owner earnings
+- How they came to us (source), including referrer name if applicable
 - Any other notes from Group 4
 - Attribution: "Intake logged by [staff name if known] on [today's date]"
 
 ---
 
-## Step 6 — Confirm and report
+## Step 7 — Confirm and report
 
 After all writes complete, report back with:
 
@@ -400,8 +479,6 @@ HubSpot records created/updated:
 Company:  [name]              → https://app.hubspot.com/contacts/[portal-id]/company/[id]
 Contact:  [firstname lastname] → https://app.hubspot.com/contacts/[portal-id]/contact/[id]
 [Deal:    [dealname]          → https://app.hubspot.com/contacts/[portal-id]/deal/[id]]  ← seller only
-
-All fields written. Review links above to verify.
 ```
 
 If any field failed to write (e.g. invalid enum value, property not found), flag it clearly
@@ -411,38 +488,53 @@ and suggest the manual fix.
 
 ## Rules and constraints
 
-1. **Real names in HubSpot always.** Codenames are for external emails only. HubSpot records
+1. **No HubSpot record until an engagement is signed** — or the deal lead explicitly says
+   otherwise. Pre-engagement research stays in Excel/SharePoint. (Step 0.)
+
+2. **RECORD APPROVAL GATE is mandatory.** The specific records must be shown and explicitly
+   approved ("load these") by Jodi or the deal lead she designates before any write. Staff
+   confirmation of the summary is not sufficient. (Step 5.)
+
+3. **Real names in HubSpot always.** Codenames are for external emails only. HubSpot records
    always use the real business name. See: Codename usage rule.
 
-2. **Never send email from this skill.** This skill writes to HubSpot only. If a follow-up
+4. **Never invent an industry slug.** The 85-slug vocabulary is maintained in lockstep with
+   BASAB's URL routing and the HubSpot enums — a value outside the vocabulary silently breaks
+   Layer 1 matching. Map plain English to existing slugs and confirm with the user.
+
+5. **Never send email from this skill.** This skill writes to HubSpot only. If a follow-up
    email is needed, draft it and wait for explicit approval before sending. Zero autonomous
    outbound to clients or prospects.
 
-3. **Never delete companies.** If you find a duplicate or a mismatched company, flag it for
+6. **Never delete companies.** If you find a duplicate or a mismatched company, flag it for
    manual review. Do not delete.
 
-4. **Company is the primary object.** Contacts must be associated to a Company — never
+7. **Company is the primary object.** Contacts must be associated to a Company — never
    create a Contact floating without a Company link. If the buyer has no firm, create a
    company named "Individual — [First Last]".
 
-5. **Search before creating.** Always search by email (for contacts) and by name (for
+8. **Search before creating.** Always search by email (for contacts) and by name (for
    companies) before creating new records. Duplicates are harder to clean up than they are
    to prevent.
 
-6. **Sub-ICP for sellers.** If the seller Sub-ICP is unclear from the intake, leave it blank.
-   Do not guess. Flag it in the note so Sam or Alina can set it after the first real
-   conversation. A wrong Sub-ICP misleads the Match Matrix.
+9. **Multi-selects append.** `sp_company_type`, `contact_relationship`, `buyer_tags`, and
+   the buy-box multi-selects are multi-value — when updating an existing record, add to the
+   existing values; never blow away what's already there.
 
-7. **Blank fields stay blank.** Never populate a field with invented, inferred, or
-   placeholder data. If the user didn't provide it, leave it empty. Flag it in the summary.
+10. **Sub-ICP for sellers.** If the seller Sub-ICP is unclear from the intake, leave it blank.
+    Do not guess. Flag it in the note so Sam or Alina can set it after the first real
+    conversation. A wrong Sub-ICP misleads the Match Matrix.
 
-8. **Today's date in notes.** Every note written to HubSpot must include the date it was
-   logged (use the current date from context).
+11. **Blank fields stay blank.** Never populate a field with invented, inferred, or
+    placeholder data. If the user didn't provide it, leave it empty. Flag it in the summary.
 
-9. **BCC logging.** If this skill causes any email to be drafted (e.g. a welcome email),
-   BCC `342889181@bcc.na3.hubspot.com` on it.
+12. **Today's date in notes.** Every note written to HubSpot must include the date it was
+    logged (use the current date from context).
 
-10. **Seller privacy.** If the seller asked for confidentiality, note it explicitly in the
+13. **BCC logging.** If this skill causes any email to be drafted (e.g. a welcome email),
+    BCC `342889181@bcc.na3.hubspot.com` on it.
+
+14. **Seller privacy.** If the seller asked for confidentiality, note it explicitly in the
     Deal note. Do not put the seller's personal details (home address, health information)
     in any field that appears on a Deal or listing document.
 
@@ -450,40 +542,102 @@ and suggest the manual fix.
 
 ## Quick-reference: field enums
 
+Verified against the live HubSpot property dumps (account 342889181). Appendix A of
+`Chevron-Customer-Journey.md` is the schema source of truth.
+
 ### `firm_type` (Company — buyer)
 `PE_Fund` · `Family_Office` · `Independent_Sponsor` · `Search_Fund` · `Holdco` ·
 `Strategic_Acquirer` · `Searcher_ETA` · `Owner_Operator` · `Searcher_Broker`
 
-### `buyer_type` (Contact — buyer)
-`Individual` · `PE-Financial` · `Strategic-Synergetic`
+### `buyer_type` (Contact — buyer; internal values)
+`individual_buyer` · `pe_financial_buyer` · `strategic_synergetic_buyer`
 
-### `sp_company_type` (Company)
-`buyer_lead` · `active_client` · `prospect` · (others exist — do not overwrite unless directed)
+### `sp_company_type` (Company — multi-select, 7 canonical values)
+`buyer` · `referrer` · `vendor` · `bd_partner` · `consulting_client` ·
+`third_party_contact` · `unverified`
 
-### `contact_relationship` (Contact — common values)
-`direct_inbound` · `referral_intro` · `trade_show` · `linkedin` · `podcast` · `website` ·
-`cold_outreach` · `seller_client`
+### `sp_sell_side_status` (Company — single-select)
+`active_client` · `prospect` · `past_client`
+
+### `contact_relationship` (Contact — multi-select, 12 canonical values)
+`internal_team` · `active_seller` · `active_buyer` · `potential_buyer` · `direct_referrer` ·
+`chain_referrer` · `professional_network` · `service_provider_deal` ·
+`service_provider_scalepoint` · `consulting_client` · `bd_partner` · `capital_active`
 
 ### `seller_sub_icp` (Contact — seller)
 `Valuation-Curious` · `Pre-Seller` · `Committed Main Street Seller` ·
 `Sophisticated FSBO` · `Time-Pressured Seller` · `Franchise Resale` · `Broker-Represented`
 
-### `transaction_structure` (Deal — seller)
-`share_sale` · `asset_sale` · `either`
+### `buyer_tags` (Contact — multi-select; 46-tag vocabulary, matches the live enum exactly)
 
-### 46-tag vocabulary (go into Contact note for buyers)
-**Sector:** auto-services · hvac · plumbing · electrical · landscaping · cleaning-commercial ·
-cleaning-residential · childcare · dental-medical · veterinary · pharmacy · fitness ·
-food-beverage · grocery-specialty · retail-general · ecommerce · manufacturing · distribution ·
-technology-saas · professional-services · marketing-agency · property-management · staffing ·
-funeral · jewelry-watch · pet-services
+**Operational style:** `absentee-friendly` · `semi-absentee` · `owner-operator-required` ·
+`multi-location-management` · `single-location-focus`
 
-**Geography:** alberta · bc · ontario · quebec · prairie-provinces · western-canada · national
+**Workforce:** `union-shop-OK` · `non-union-only` · `key-employee-retention-critical` ·
+`low-headcount-comfort` · `high-headcount-experience`
 
-**Deal size:** sub-1m · 1m-3m · 3m-7m · 7m-15m · 15m-plus
+**Customer profile:** `low-concentration-required` · `concentration-tolerant` ·
+`contract-revenue-preferred` · `transactional-revenue-OK`
 
-**Buyer type:** searcher-eta · owner-operator · search-fund · pe-fund · family-office ·
-independent-sponsor · holdco · strategic-acquirer
+**Deal structure:** `asset-deal-preferred` · `share-deal-OK` · `earn-out-friendly` ·
+`earn-out-averse` · `VTB-friendly` · `VTB-required` · `VTB-averse`
 
-**Other:** franchise-experience · absentee-ok · semi-absentee-ok · turnaround-ok ·
-real-estate-included · real-estate-preferred · vendor-financing-required · urgent-timeline
+**Real estate:** `real-estate-included-required` · `real-estate-included-bonus` ·
+`real-estate-excluded-preferred` · `real-estate-lease-OK`
+
+**Brand / regulation:** `franchise-experience` · `franchise-averse` · `licensed-industry-OK` ·
+`compliance-heavy-OK` · `compliance-light-only`
+
+**Geography:** `relocation-willing` · `relocation-not-willing` · `specific-province-only` ·
+`remote-management-OK`
+
+**Buyer style:** `first-time-buyer` · `repeat-buyer` · `holdco-style` · `portfolio-builder` ·
+`single-acquisition`
+
+**Timeline:** `ready-to-close-fast` · `patient-buyer` · `specific-deadline-driven`
+
+**Asset intensity:** `equipment-heavy-OK` · `equipment-light-preferred` · `inventory-heavy-OK` ·
+`recurring-revenue-required`
+
+Industry and geography are intentionally NOT in this vocabulary — they live in
+`buy_box_industries_targeted` / `buy_box_industries_avoided` / `listing_industry` and
+`buy_box_geography_yes` / `buy_box_geography_no`.
+
+### The 85 canonical industry slugs
+(`buy_box_industries_targeted` · `buy_box_industries_avoided` on Contact;
+`listing_industry` on Deal — identical option lists, mirroring BASAB URLs exactly)
+
+```
+accounting-bookkeeping        aesthetics-and-beauty          agriculture
+animals-pets                  app-development                aquaculture
+architecture-and-design       arts-entertainment             automotive
+aviation-and-aerospace        banquet-convention-facilities  brewery
+cleaning-services             computers-electronics          construction
+consulting                    consumer-services              content-creation
+convenience-variety-store     cybersecurity                  data-analytics-management
+distribution                  ecommerce                      education
+electrical                    environmental-services         event-management
+fashion-apparel               finance                        floral-horticulture
+food-and-beverage             government                     grocery-supermarket
+healthcare                    health-fitness                 health-wellness
+hobby-and-craft-artisanal     homecare-services              hospitality
+human-resources-employment-services                          information-technology
+insurance-and-risk-management interior-design-decor          jewellery
+landscaping-gardening         laundry-and-dry-cleaning       legal
+logistics                     machinery                      management
+manufacturing                 marketing-advertising          media
+medical                       mining                         not-for-profit
+outsourcing                   pharmaceutical-biotechnology   photography
+property-management           public-relations               publishing
+real-estate                   renewable-energy-and-clean-tech
+rental-leasing                repair-maintenance             restaurant
+retail                        robotics                       shipping-courier
+social-dating                 software-saas                  sports-recreation
+telecommunications            textiles                       tourism
+toys-games                    transportation-and-mobility    travel-leisure
+virtual-augmented-reality     warehousing-storage            web-development-hosting
+wholesale                     wine-and-spirits               work-from-home
+```
+
+If in doubt about any enum's current live options, fetch them with `hubspot-get-property`
+before writing.
