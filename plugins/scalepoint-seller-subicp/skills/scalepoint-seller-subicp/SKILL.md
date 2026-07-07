@@ -55,6 +55,8 @@ Each card has: essence, telltale signs, easy-to-confuse-with (with distinguishin
 
 **Step 3 — Write to HubSpot.**
 
+> **Schema source of truth:** Appendix A of `Chevron-Customer-Journey.md` (SharePoint/repo) is the schema source of truth for every property name below. If a write fails on a property name, check Appendix A before improvising.
+
 Use the HubSpot MCP `manage_crm_objects` tool to update the seller Contact:
 
 - `seller_sub_icp` → the matched value (one of: `Valuation-Curious`, `Pre-Seller`, `Committed Main Street Seller`, `Sophisticated FSBO`, `Time-Pressured Seller`, `Franchise Resale`, `Broker-Represented`)

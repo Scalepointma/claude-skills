@@ -1,7 +1,7 @@
 {
   "name": "scalepoint-seller-subicp",
-  "version": "2.0.0",
-  "description": "ScalePoint internal skill: identify a seller's Sub-ICP (A\u2013G) during intake conversations and route them through the Match Matrix.",
+  "version": "2.0.1",
+  "description": "ScalePoint internal skill: identify a seller's Sub-ICP (A–G) during intake conversations and route them through the Match Matrix.",
   "author": {
     "name": "ScalePoint M&A"
   },
