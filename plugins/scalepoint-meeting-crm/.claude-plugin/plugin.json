@@ -1,6 +1,6 @@
 {
   "name": "scalepoint-meeting-crm",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Transcribe a meeting recording and populate a seller deal or buyer profile in HubSpot. Handles audio files via whisper and pasted transcripts.",
   "author": {
     "name": "ScalePoint M&A"
