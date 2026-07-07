@@ -117,7 +117,9 @@ def draw_reverse_tint(c, x, y, w, h, title="", body="",
 
 def draw_callout_bar(c, x, y, w, h, text="", bg_color=None,
                      text_color=None):
-    """Full-width dark bar — for key takeaways / section summary lines."""
+    """Full-width dark bar. RARE (rule 9): the DEFAULT callout is the
+    gold-on-gold `draw_light_callout` (pale gold bg + gold accent +
+    deep-green text). Reserve this dark bar for exceptional cases."""
     if bg_color is None:
         bg_color = DEEP_GREEN
     if text_color is None:
@@ -197,7 +199,14 @@ def draw_footnote(c, x, y, text, max_width=None):
 # =============================================================================
 def draw_table(c, x, y, col_widths, headers, rows, total_row=None,
                highlight_rows=None):
-    """Boardroom table: deep-green header, alternating cream rows, rounded."""
+    """Boardroom table: deep-green header, alternating cream rows, rounded.
+
+    RULE 23: every column needs a real header. Raises on blank headers."""
+    if len(headers) != len(col_widths):
+        raise ValueError(f"draw_table: {len(headers)} headers for {len(col_widths)} columns.")
+    for i, hdr in enumerate(headers):
+        if not str(hdr).strip():
+            raise ValueError(f"draw_table: blank header in column {i+1} (rule 23): name every column (e.g. 'Adjustment', 'Component').")
     row_h = 24
     header_h = 30
     table_w = sum(col_widths)
@@ -371,7 +380,7 @@ def draw_deal_tombstone(c, x, y, w, h, deal_name="", sector="",
         c.drawString(cx, y + 24, label)
         c.setFont(FONT_DISPLAY_BOLD, 11)
         c.setFillColor(WHITE)
-        c.drawString(cx, y + 10, value or "—")
+        c.drawString(cx, y + 10, value or "-")
 
     return y
 

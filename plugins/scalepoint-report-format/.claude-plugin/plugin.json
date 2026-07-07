@@ -1,6 +1,6 @@
 {
   "name": "scalepoint-report-format",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Produces boardroom-quality, print-ready PDFs in ScalePoint M&A's brand visual style using ReportLab. Covers CIMs, teasers, valuation reports, brochures, proposals, and all branded ScalePoint documents.",
   "author": {
     "name": "ScalePoint M&A"

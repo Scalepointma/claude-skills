@@ -24,25 +24,48 @@ Media Kit + scalepointma.com.
 | Muted / footnotes | Muted Green-Grey | `#4A5B58` | `SECONDARY_COLOR` |
 | Micro-copy | Light Sage | `#8A9995` | `LIGHT_TEXT` |
 
-**Accent rotation:** `[GOLD, TEAL, GOLD, OLIVE, GOLD, TEAL]` — gold is dominant,
-olive and teal provide contrast. Never repeat a color in adjacent positions.
+**Accent discipline (2026-07 revision):** the default accent is a SINGLE
+consistent **GOLD** — the old random gold/teal/olive rotation is retired (it
+read as random and cheap). Break up gold **deliberately and evenly** only via
+the palette helpers: per-ROW in card grids (`card_grid_rows`: gold / deep
+green / olive), per-COLUMN in value grids (`cards_by_column`: 2 gold / 2
+green / 2 olive), a second stat row in deep green
+(`draw_stat_row(accent_color=DEEP_GREEN)`), and deep-green number badges on
+gold numbered rows. Never a per-card random mix.
+
+**Standard descriptor:** the small label under any hero number, stat box or
+value card is ALWAYS: ALL CAPS, `LABEL_GOLD` `#A9803A`, 8pt, letter-spaced
+(`draw_descriptor`) — identical everywhere, whatever the accent bar colour.
+
+**GOLD_LIGHT `#F6E279` is never a text colour** — it exists only inside the
+gold gradient bar.
 
 ---
 
 ## 2. Typography
 
-Brand fount is **Libre Baskerville** (Bold + Regular). ReportLab's PostScript
-fonts do not include Libre Baskerville, so we pair:
+Brand fount is **Libre Baskerville** — the TTFs are BUNDLED in
+`assets/fonts/` (OFL licensed) and registered automatically when
+`scalepoint_base` is imported. `FONT_DISPLAY` / `FONT_DISPLAY_BOLD` /
+`FONT_DISPLAY_ITALIC` resolve to Libre Baskerville; if the TTFs are missing
+the module warns and falls back to Times.
 
-| Role | Font (ReportLab) | Brand equivalent |
+| Role | Font const | Face |
 |---|---|---|
-| Section titles, subheadings, stat numbers, card titles, table headers, deal tombstones, TOC | **Times-Bold** | Libre Baskerville Bold |
-| Italic pull-quotes, taglines, subtitles | **Times-Italic** | Libre Baskerville Italic |
-| Body copy, bullet lists, table cells, footnotes, card body | **Helvetica** | sans body for readability |
-| Kickers (small uppercase), labels | **Helvetica-Bold** | crisp sans for small caps |
+| Section titles, subheadings, stat numbers, card titles, table headers, deal tombstones, TOC | `FONT_DISPLAY_BOLD` | Libre Baskerville Bold |
+| Italic pull-quotes, taglines, subtitles | `FONT_DISPLAY_ITALIC` | Libre Baskerville Italic |
+| Body copy, bullet lists, table cells, footnotes, card body | `FONT_BODY` (Helvetica) | sans body for readability |
+| Kickers (small uppercase), labels | `FONT_BODY_BOLD` | crisp sans for small caps |
 
-To upgrade to true Libre Baskerville later, register TTFs via
-`pdfmetrics.registerFont()` before calling the skill.
+**Type hierarchy is an ALWAYS rule — check every page:**
+heading (28pt) > **subhead (20pt serif)** > hero/caption fonts > body (10pt).
+A subhead must be visibly larger than the page's callout/caption text and
+smaller than the heading, with enforced space above and below.
+
+**No em dashes in any content, ever** — rewrite with commas, colons, or
+shorter sentences. En dash is allowed ONLY inside numeric ranges
+($1.19M–$1.36M, Net 30–120, FY2023–FY2025). `clean_text()` enforces this
+mechanically; write it correctly in the first place.
 
 ---
 
@@ -152,11 +175,20 @@ This treatment is applied by `draw_duotone_hero()` and
 | Lockup | When to use | Asset file |
 |---|---|---|
 | Primary horizontal (icon + gold wordmark in outlined box) | Standard headers, letterheads, small hero panels | `logo-primary-horizontal.png` |
-| Stacked on dark (icon + gold wordmark box, green bg) | Full covers, hero blocks on deep-green | `logo-stacked-on-dark.png` |
-| White reverse (all white on dark) | Back covers, dark footers | `logo-white.png` |
+| Stacked on dark (icon + gold wordmark box, green bg) | Full covers, hero blocks on deep-green, **back covers** | `logo-stacked-on-dark.png` |
+| White reverse | ⚠️ has an opaque BLACK background baked in — never place on a colour field; effectively unused until re-exported with transparency | `logo-white.png` |
 | Icon only — full color | Footer icon, small brand marks | `icon-fullcolor.png` |
 | Icon only — gold | Monochrome gold applications | `icon-gold.png` |
 | Pattern — light bg | Subtle watermark textures | `pattern-light.png` |
+
+**Logos must be TRIMMED before placing** — the PNGs ship with huge dead
+padding (the stacked logo is ~27% content), which makes them render ~3x too
+small in fixed boxes. `discover_assets()` auto-trims; if you place a logo
+manually, run it through `trim_image()` and size with `image_ratio()`.
+**Covers want a LARGE logo** (~250pt wide stacked lockup).
+
+**Never draw a decorative rule/line directly under the logo** — the lockup
+already has its wordmark pill.
 
 **Forbidden** (per brand guide): stretching/skewing, re-typing wordmark,
 white logo on pale background, graphic effects, placement on high-contrast
@@ -167,13 +199,10 @@ icon vs wordmark.
 
 ## 9. Asset Discovery
 
-`discover_assets()` searches these paths for canonical filenames:
-
-- `/sessions/*/mnt/*/scalepoint-report-format*/assets`
-- `/sessions/*/mnt/**/scalepoint-report-format*/assets`
-- `/sessions/*/mnt/.claude/skills/scalepoint*/assets`
-- `/sessions/*/mnt/outputs/scalepoint-report-format/assets`
-- `/sessions/*/mnt/uploads`
+`discover_assets()` looks in this skill's own `assets/` folder (relative to
+the scripts module — works identically on any machine, plugin install, or
+claude.ai skill upload). Pass `extra_dirs=[...]` to prepend other locations
+(e.g. a session uploads folder). Logos/icons are auto-trimmed on discovery.
 
 Canonical names: `logo-primary`, `logo-stacked`, `logo-white`, `icon-fullcolor`,
 `icon-gold`, `pattern-light`, `cover-bg`.

@@ -167,8 +167,16 @@ def draw_kicker(c, x, y, text, color=None):
     return y - GAP_KICKER_TO_SUBHEAD
 
 
-def draw_subheading(c, x, y, text, size=22):
-    """Serif sub-heading in deep green. Returns y with GAP_SUBHEAD_TO_BODY."""
+def draw_subheading(c, x, y, text, size=20, gap_above=0):
+    """Serif sub-heading in deep green — 20pt STANDARD (rule 8).
+
+    RULE 8 (always-check): type hierarchy on every page is
+    heading (28) > subhead (20) > hero/caption fonts > body (10).
+    A subhead must be visibly larger than callout/caption text and smaller
+    than the page heading, with breathing space above and below. Never let
+    a 9pt eyebrow masquerade as a subhead.
+    Returns y with GAP_SUBHEAD_TO_BODY below."""
+    y -= gap_above
     c.setFont(FONT_DISPLAY_BOLD, size)
     c.setFillColor(DEEP_GREEN)
     c.drawString(x, y, text)

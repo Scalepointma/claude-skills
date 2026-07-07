@@ -142,75 +142,75 @@ def draw_stat_box(c, x, y, w, h, number="", label="", accent_color=None,
         c.drawString(x + (w - num_w) / 2, y + h / 2 - 2, str(number))
 
     if label:
-        c.setFont(FONT_BODY_BOLD, 8)
-        c.setFillColor(accent_color)
-        label_upper = label.upper()
-        # Letter-spaced label for editorial feel
-        char_x = x
-        total_w = 0
-        for ch in label_upper:
-            total_w += c.stringWidth(ch, FONT_BODY_BOLD, 8) + 1.2
-        char_x = x + (w - total_w) / 2
-        for ch in label_upper:
-            c.drawString(char_x, y + 12, ch)
-            char_x += c.stringWidth(ch, FONT_BODY_BOLD, 8) + 1.2
+        # RULE 22: descriptor is ALWAYS the standard gold, regardless of
+        # the accent bar colour.
+        draw_descriptor(c, x + w / 2, y + 12, label)
 
     return y
 
 
-def draw_stat_row(c, x, y, stats, gap=12):
-    """Row of stat boxes with enforced color adjacency. Returns y below."""
+def draw_stat_row(c, x, y, stats, gap=12, accent_color=None):
+    """Row of stat boxes, ONE accent colour for the whole row (rule 3/13).
+    Default GOLD. For a second stat row on the same page, pass
+    accent_color=DEEP_GREEN to break up the gold. Returns y below."""
     n = len(stats)
     if n == 0:
         return y
+    if accent_color is None:
+        accent_color = GOLD
     box_w = (CONTENT_W - gap * (n - 1)) / n
     box_h = 82
 
-    prev_color = None
     for i, stat in enumerate(stats):
         sx = x + i * (box_w + gap)
-        color = get_accent_color(i, prev_color)
         draw_stat_box(c, sx, y - box_h, box_w, box_h,
                       number=stat.get("number", ""),
                       label=stat.get("label", ""),
-                      accent_color=color)
-        prev_color = color
+                      accent_color=accent_color)
 
     return y - box_h
 
 
 def draw_numbered_card(c, x, y, w, h, number=1, kicker="", title="", body="",
-                       accent_color=None, accent_index=0, shadow=True):
-    """Card with numbered circle badge. USE FOR MODULES / STEPS / PHASES."""
+                       accent_color=None, badge_color=None, accent_index=0,
+                       shadow=True):
+    """Card with numbered circle badge. USE FOR MODULES / STEPS / PHASES.
+
+    RULE 13: default = GOLD card accent + DEEP-GREEN number badge (the green
+    badge cuts the gold). RULE 7: for single-line rows (no body), the badge
+    and title are vertically CENTERED in the card, and the numeral is
+    centered within its circle."""
     if accent_color is None:
-        accent_color = ACCENT_ROTATION[accent_index % len(ACCENT_ROTATION)]
+        accent_color = GOLD
+    if badge_color is None:
+        badge_color = DEEP_GREEN
 
     draw_card(c, x, y, w, h, accent_color=accent_color,
               accent_position="left", shadow=shadow)
 
-    circle_r = 14
+    circle_r = 13
     circle_x = x + ACCENT_W + 16 + circle_r
-    circle_y = y + h - 18 - circle_r
+    single_line = bool(title) and not body and not kicker
+    # Rule 7: center vertically for single-line rows; top-align otherwise
+    circle_y = y + h / 2 if single_line else y + h - 18 - circle_r
 
-    c.setFillColor(accent_color)
+    c.setFillColor(badge_color)
     c.circle(circle_x, circle_y, circle_r, fill=1, stroke=0)
     c.setFont(FONT_DISPLAY_BOLD, 13)
     c.setFillColor(WHITE)
-    num_str = str(number)
-    num_w = c.stringWidth(num_str, FONT_DISPLAY_BOLD, 13)
-    c.drawString(circle_x - num_w / 2, circle_y - 4.5, num_str)
+    # numeral centered in its circle (optical centre: half cap-height down)
+    c.drawCentredString(circle_x, circle_y - 4.5, str(number))
 
-    text_left = circle_x + circle_r + 10
-    text_max_w = x + w - text_left - 16
+    text_left = circle_x + circle_r + 12
 
     if kicker:
-        c.setFont(FONT_BODY_BOLD, 8)
-        c.setFillColor(accent_color)
-        c.drawString(text_left, circle_y + 6, kicker.upper())
+        spaced(c, text_left, circle_y + 6, kicker.upper(),
+               FONT_BODY_BOLD, LABEL_SIZE, LABEL_GOLD, 1.0)
 
     if title:
-        title_y = circle_y - 10 if kicker else circle_y + 2
-        c.setFont(FONT_DISPLAY_BOLD, 13)
+        title_y = (circle_y - 4.5) if single_line else \
+                  (circle_y - 10 if kicker else circle_y + 2)
+        c.setFont(FONT_DISPLAY_BOLD, 12.5)
         c.setFillColor(DEEP_GREEN)
         c.drawString(text_left, title_y, title)
 
@@ -222,3 +222,75 @@ def draw_numbered_card(c, x, y, w, h, number=1, kicker="", title="", body="",
                        FONT_BODY, 10, 13, BODY_COLOR)
 
     return y
+
+
+# =============================================================================
+# DELIBERATE COLOUR-BALANCED GRIDS (rules 13 & 20) + VALUE CARDS (rule 22)
+# =============================================================================
+def card_grid_rows(c, x, y, cards, cols, row_colors=None, gap=14):
+    """Card grid where each ROW uses one accent colour — the approved way to
+    break up gold in a highlight grid (rule 13): row1 GOLD, row2 DEEP_GREEN,
+    row3 OLIVE. Returns y below the grid."""
+    if row_colors is None:
+        row_colors = [GOLD, DEEP_GREEN, OLIVE]
+    cw = (CONTENT_W - gap * (cols - 1)) / cols
+    rh = {}
+    for i, cd in enumerate(cards):
+        r = i // cols
+        rh[r] = max(rh.get(r, 92),
+                    calculate_card_height(c, cd.get("title", ""), cd.get("body", ""), cw))
+    for i, cd in enumerate(cards):
+        col = i % cols
+        r = i // cols
+        cx = x + col * (cw + gap)
+        row_y = y
+        for rr in range(r):
+            row_y -= rh[rr] + gap
+        draw_card(c, cx, row_y - rh[r], cw, rh[r],
+                  title=cd.get("title", ""), body=cd.get("body", ""),
+                  accent_color=row_colors[r % len(row_colors)])
+    return y - (sum(rh.values()) + gap * (len(rh) - 1))
+
+
+def cards_colored(c, x, y, cards, colors=None, cols=3, gap=14):
+    """One row of cards, each with its own accent colour (e.g. persona cards:
+    GOLD / DEEP_GREEN / OLIVE). Returns y below the row."""
+    if colors is None:
+        colors = [GOLD, DEEP_GREEN, OLIVE]
+    cw = (CONTENT_W - gap * (cols - 1)) / cols
+    h = max(calculate_card_height(c, cd.get("title", ""), cd.get("body", ""), cw)
+            for cd in cards)
+    for i, cd in enumerate(cards):
+        draw_card(c, x + i * (cw + gap), y - h, cw, h,
+                  title=cd.get("title", ""), body=cd.get("body", ""),
+                  accent_color=colors[i % len(colors)])
+    return y - h
+
+
+def kv_card(c, x, y, w, h, value, label, accent_color=None):
+    """Value card: serif value + THE standard descriptor (rule 22)."""
+    if accent_color is None:
+        accent_color = GOLD
+    draw_card(c, x, y, w, h, accent_color=accent_color, accent_position="left")
+    tx = x + ACCENT_W + 16
+    c.setFont(FONT_DISPLAY_BOLD, 15)
+    c.setFillColor(DEEP_GREEN)
+    c.drawString(tx, y + h - 30, str(value))
+    spaced(c, tx, y + 16, label.upper(), FONT_BODY_BOLD, LABEL_SIZE, LABEL_GOLD, 1.0)
+
+
+def cards_by_column(c, x, y, cards, cols, col_colors=None, card_h=72, gap=12):
+    """Value-card grid; each COLUMN (stack) uses one accent colour so the
+    palette balances EVENLY (rule 20: for a 6-up grid, 2 gold / 2 green /
+    2 olive by column). cards = [{"title": value, "body": label}, ...]"""
+    import math
+    if col_colors is None:
+        col_colors = [GOLD, DEEP_GREEN, OLIVE]
+    cw = (CONTENT_W - gap * (cols - 1)) / cols
+    rows = math.ceil(len(cards) / cols)
+    for i, cd in enumerate(cards):
+        col = i % cols
+        r = i // cols
+        kv_card(c, x + col * (cw + gap), y - r * (card_h + gap) - card_h, cw, card_h,
+                cd["title"], cd["body"], col_colors[col % len(col_colors)])
+    return y - (rows * card_h + (rows - 1) * gap)

@@ -17,7 +17,7 @@ __all__ = [
     'OLIVE', 'TEAL', 'WHITE', 'NEAR_WHITE', 'CREAM',
     'BODY_COLOR', 'SECONDARY_COLOR', 'LIGHT_TEXT', 'BORDER_COLOR',
     'BG_LIGHT', 'CALLOUT_GOLD_BG', 'CALLOUT_TEAL_BG', 'CALLOUT_OLIVE_BG',
-    'ACCENT_ROTATION', 'get_accent_color',
+    'ACCENT_ROTATION', 'get_accent_color', 'LABEL_GOLD', 'LABEL_SIZE', 'SEPIA',
     # Dimensions
     'W', 'H', 'MARGIN', 'CONTENT_W', 'CORNER_R', 'ACCENT_W', 'PAGE_BG',
     'HEADER_H', 'HEADER_ACCENT_H', 'HEADER_GAP', 'CONTENT_TOP',
@@ -31,13 +31,14 @@ __all__ = [
     'MIN_FONT_BODY', 'MIN_FONT_CARD_BODY', 'MIN_FONT_TABLE_BODY',
     'MIN_FONT_STAT_NUMBER', 'MIN_FONT_STAT_LABEL',
     # Font families
-    'FONT_DISPLAY', 'FONT_DISPLAY_BOLD', 'FONT_BODY', 'FONT_BODY_BOLD',
-    'FONT_BODY_ITALIC',
+    'FONT_DISPLAY', 'FONT_DISPLAY_BOLD', 'FONT_DISPLAY_ITALIC',
+    'FONT_BODY', 'FONT_BODY_BOLD', 'FONT_BODY_ITALIC',
     # Helpers
     '_draw_shadow', '_wrap_text', '_wrap_and_draw',
-    'measure_text_height', 'draw_body_text', 'clean_text',
+    'measure_text_height', 'draw_body_text', 'clean_text', 'assert_no_em_dash',
     'will_fit', 'remaining_height',
-    'ASSET_MAP', 'discover_assets',
+    'ASSET_MAP', 'discover_assets', 'trim_image', 'image_ratio',
+    'spaced', 'draw_descriptor',
     'HexColor', 'Color', 'letter',
 ]
 
@@ -72,17 +73,28 @@ CALLOUT_GOLD_BG  = HexColor("#FBF4DE")
 CALLOUT_TEAL_BG  = HexColor("#E3EFEC")
 CALLOUT_OLIVE_BG = HexColor("#EEF1DF")
 
-# Accent rotation — gold is dominant; teal + olive provide contrast.
-# Never the same color twice in a row.
-ACCENT_ROTATION = [GOLD, TEAL, GOLD, OLIVE, GOLD, TEAL]
+# RULE 3 (2026-07): accent discipline. The old random gold/teal/olive rotation
+# looked cheap. Default accent is a SINGLE consistent GOLD everywhere.
+# To break up gold deliberately, use the explicit palette helpers:
+#   card_grid_rows(..., row_colors=[GOLD, DEEP_GREEN, OLIVE])   (one colour per ROW)
+#   cards_by_column(..., col_colors=[GOLD, DEEP_GREEN, OLIVE])  (one colour per COLUMN)
+#   draw_stat_row(..., accent_color=DEEP_GREEN)                 (whole row, e.g. 2nd stat row)
+# Never a per-card random mix.
+ACCENT_ROTATION = [GOLD]
+
+# RULE 22: THE standard hero/stat descriptor — ALL CAPS, this gold, 8pt,
+# letter-spaced — identical everywhere (cover badges, stat boxes, value cards).
+LABEL_GOLD = HexColor("#A9803A")
+LABEL_SIZE = 8
+
+# Sepia / warm off-white — cover hero-badge faces (rule 11)
+SEPIA = HexColor("#F1E9D6")
 
 
 def get_accent_color(index, prev_color=None):
-    """Get accent color at `index`, guaranteeing no repeat with prev_color."""
-    color = ACCENT_ROTATION[index % len(ACCENT_ROTATION)]
-    if prev_color and color == prev_color:
-        color = ACCENT_ROTATION[(index + 1) % len(ACCENT_ROTATION)]
-    return color
+    """Accent colour for auto-styled elements: always GOLD (rule 3).
+    Signature kept for backward compatibility."""
+    return GOLD
 
 
 # =============================================================================
@@ -131,14 +143,45 @@ MIN_FONT_STAT_LABEL   = 8
 # =============================================================================
 # FONT FAMILIES
 # =============================================================================
-# Display / headings / card titles / stat numbers — serif (echoes Libre Baskerville)
-FONT_DISPLAY      = "Times-Roman"
-FONT_DISPLAY_BOLD = "Times-Bold"
+# Display face: Libre Baskerville if the bundled TTFs are present in
+# assets/fonts/ (registered below), else Times as a high-fidelity stand-in.
+# Body copy / tables / bullets / footnotes — sans for readability at small sizes.
+FONT_DISPLAY        = "Times-Roman"
+FONT_DISPLAY_BOLD   = "Times-Bold"
+FONT_DISPLAY_ITALIC = "Times-Italic"
 
-# Body copy / tables / bullets / footnotes — sans for readability at small sizes
 FONT_BODY         = "Helvetica"
 FONT_BODY_BOLD    = "Helvetica-Bold"
 FONT_BODY_ITALIC  = "Helvetica-Oblique"
+
+
+def _register_display_fonts():
+    """Register bundled Libre Baskerville TTFs if present; fall back to Times."""
+    global FONT_DISPLAY, FONT_DISPLAY_BOLD, FONT_DISPLAY_ITALIC
+    import os
+    fonts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             "..", "assets", "fonts")
+    ttfs = {
+        "LibreBaskerville":        "LibreBaskerville-Regular.ttf",
+        "LibreBaskerville-Bold":   "LibreBaskerville-Bold.ttf",
+        "LibreBaskerville-Italic": "LibreBaskerville-Italic.ttf",
+    }
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        for name, fn in ttfs.items():
+            path = os.path.join(fonts_dir, fn)
+            if not os.path.isfile(path):
+                raise FileNotFoundError(fn)
+            pdfmetrics.registerFont(TTFont(name, path))
+        FONT_DISPLAY        = "LibreBaskerville"
+        FONT_DISPLAY_BOLD   = "LibreBaskerville-Bold"
+        FONT_DISPLAY_ITALIC = "LibreBaskerville-Italic"
+    except Exception:
+        print("NOTE: Libre Baskerville TTFs not available; using Times for display type.")
+
+
+_register_display_fonts()
 
 
 # =============================================================================
@@ -242,26 +285,82 @@ ASSET_MAP = {
 }
 
 
-def discover_assets(extra_dirs=None):
-    """
-    Search for ScalePoint assets across common skill locations.
-    Returns {canonical_name: path_or_None} and prints a report.
-    """
-    import glob, os
+def trim_image(img_path, tolerance=30, pad=8):
+    """RULE 4 (root-cause fix): auto-trim transparent AND solid-background
+    padding from a logo/icon PNG. The stacked logo ships 2560x1538 with only
+    ~714x497 of content — placed untrimmed it renders ~3x too small.
+    Returns the path to a cached trimmed copy (same directory or temp)."""
+    import os, tempfile
+    try:
+        from PIL import Image
+    except ImportError:
+        return img_path
+    base, ext = os.path.splitext(os.path.basename(img_path))
+    for cache_dir in (os.path.dirname(img_path), tempfile.gettempdir()):
+        cached = os.path.join(cache_dir, f"{base}_trim.png")
+        if os.path.isfile(cached):
+            return cached
+    try:
+        img = Image.open(img_path).convert("RGBA")
+        # 1) alpha-trim
+        bbox = img.getbbox()
+        if bbox:
+            img = img.crop(bbox)
+        # 2) solid-background trim (diff vs corner pixel)
+        px = img.load()
+        w, h = img.size
+        bg = px[0, 0]
+        minx, miny, maxx, maxy = w, h, -1, -1
+        for yy in range(0, h, 2):
+            for xx in range(0, w, 2):
+                p = px[xx, yy]
+                if p[3] > 10 and (abs(p[0]-bg[0]) + abs(p[1]-bg[1]) + abs(p[2]-bg[2]) > tolerance or bg[3] <= 10):
+                    if xx < minx: minx = xx
+                    if xx > maxx: maxx = xx
+                    if yy < miny: miny = yy
+                    if yy > maxy: maxy = yy
+        if maxx > minx and maxy > miny and (maxx - minx) < w - 4:
+            img = img.crop((max(0, minx - pad), max(0, miny - pad),
+                            min(w, maxx + pad + 1), min(h, maxy + pad + 1)))
+        out = None
+        for cache_dir in (os.path.dirname(img_path), tempfile.gettempdir()):
+            try:
+                out = os.path.join(cache_dir, f"{base}_trim.png")
+                img.save(out)
+                break
+            except OSError:
+                continue
+        return out or img_path
+    except Exception:
+        return img_path
 
-    search_dirs = []
-    for pattern in [
-        "/sessions/*/mnt/*/scalepoint-report-format*/assets",
-        "/sessions/*/mnt/**/scalepoint-report-format*/assets",
-        "/sessions/*/mnt/.claude/skills/scalepoint*/assets",
-        "/sessions/*/mnt/outputs/scalepoint-report-format/assets",
-        "/sessions/*/mnt/*/assets",
-        "/sessions/*/mnt/uploads",
-    ]:
-        search_dirs.extend(glob.glob(pattern, recursive=True))
-    if extra_dirs:
-        search_dirs.extend(extra_dirs)
 
+def image_ratio(img_path):
+    """Return height/width of an image (for sizing drawImage calls)."""
+    try:
+        from PIL import Image
+        w, h = Image.open(img_path).size
+        return h / w
+    except Exception:
+        return 0.7
+
+
+def discover_assets(extra_dirs=None, trim=True):
+    """
+    Locate ScalePoint brand assets. Default location is this skill's own
+    assets/ folder (relative to this module) — no machine-specific paths.
+    Pass extra_dirs to prepend additional search locations.
+    Logos/icons are auto-trimmed (rule 4) so they render at true size.
+    NOTE: logo-white.png has an opaque BLACK background baked in — never
+    place it on a colour field; use logo-stacked (bg is exactly DEEP_GREEN).
+    """
+    import os
+
+    module_assets = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "assets"))
+    search_dirs = list(extra_dirs or []) + [module_assets]
+
+    TRIMMABLE = {"logo-primary", "logo-stacked", "icon-fullcolor", "icon-gold"}
     found = {}
     for canonical, filenames in ASSET_MAP.items():
         found[canonical] = None
@@ -269,7 +368,7 @@ def discover_assets(extra_dirs=None):
             for fn in filenames:
                 path = os.path.join(d, fn)
                 if os.path.isfile(path):
-                    found[canonical] = path
+                    found[canonical] = trim_image(path) if (trim and canonical in TRIMMABLE) else path
                     break
             if found[canonical]:
                 break
@@ -277,7 +376,8 @@ def discover_assets(extra_dirs=None):
     print("=== ScalePoint Asset Discovery ===")
     for name, path in found.items():
         if path:
-            print(f"  FOUND  {name}: {path}")
+            note = "  [do NOT place on colour fields — opaque black bg]" if name == "logo-white" else ""
+            print(f"  FOUND  {name}: {path}{note}")
         else:
             print(f"  MISSING {name}: searched for {ASSET_MAP[name]}")
     print("==================================")
@@ -285,20 +385,62 @@ def discover_assets(extra_dirs=None):
 
 
 # =============================================================================
+# LETTER-SPACED CAPS (kickers, descriptors) — shared so style can't drift
+# =============================================================================
+def spaced(c, x, y, text, font=None, size=None, color=None, tracking=1.2,
+           center=False, right=False):
+    """Letter-spaced text. Default = THE standard descriptor (rule 22):
+    ALL CAPS, LABEL_GOLD, 8pt."""
+    font = font or FONT_BODY_BOLD
+    size = size or LABEL_SIZE
+    color = color or LABEL_GOLD
+    c.setFont(font, size)
+    c.setFillColor(color)
+    total = sum(c.stringWidth(ch, font, size) + tracking for ch in text) - tracking
+    sx = x - total / 2 if center else (x - total if right else x)
+    for ch in text:
+        c.drawString(sx, y, ch)
+        sx += c.stringWidth(ch, font, size) + tracking
+
+
+def draw_descriptor(c, cx, y, label, center=True):
+    """RULE 22: the ONE standard hero/stat descriptor — ALL CAPS, LABEL_GOLD,
+    8pt, letter-spaced. Identical under every hero number, stat box and value
+    card, regardless of the element's accent colour."""
+    spaced(c, cx, y, label.upper(), FONT_BODY_BOLD, LABEL_SIZE, LABEL_GOLD,
+           tracking=1.2, center=center)
+
+
+# =============================================================================
 # CHARACTER CLEANUP
 # =============================================================================
 def clean_text(text):
-    """Fix encoding failures in extracted content (smart quotes, control chars).
-    Run on ALL text pulled from docx/pptx/pdf before rendering."""
+    """Fix encoding failures AND enforce the dash rule. Run on ALL text
+    (extracted or generated) before rendering.
+
+    RULE 19: NO EM DASHES, ever. Em dashes become ', '. En dashes survive
+    ONLY between digits (numeric ranges: $1.19M\u20131.36M, Net 30\u2013120);
+    anywhere else they become ', ' too. Prefer rewriting with commas/colons
+    upstream; this is the mechanical safety net."""
     if not text:
         return text
     import re
     text = text.replace('\ufffd', '')
     text = text.replace('\u2018', "'").replace('\u2019', "'")
     text = text.replace('\u201c', '"').replace('\u201d', '"')
-    text = text.replace('\u2013', '-').replace('\u2014', '--')
+    # em dash (and double-hyphen used as one) -> comma
+    text = re.sub(r'\s*(?:\u2014|--)\s*', ', ', text)
+    # en dash: keep between digits, else -> comma
+    text = re.sub(r'(?<=[\d%KMB\)])\s*\u2013\s*(?=[\d$])', '\u2013', text)
+    text = re.sub(r'\s*\u2013\s*(?![\d$])', ', ', text)
     # ScalePoint-specific: normalize common M&A shorthand typos
     text = re.sub(r'\bM\s*&\s*A\b', 'M&A', text)
-    text = re.sub(r'\bLOI\b', 'LOI', text)  # preserved (not stripped)
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
     return text
+
+
+def assert_no_em_dash(*texts):
+    """Hard check for generated copy (rule 19). Raises on any em dash."""
+    for t in texts:
+        if t and '\u2014' in t:
+            raise ValueError(f"Em dash in content (rule 19), rewrite with comma/colon: {t[:70]}")
