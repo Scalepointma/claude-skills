@@ -127,8 +127,17 @@ def metric_strip(c, y, metrics):
     return my - 13 - 16
 
 
+def _fmt_money(v):
+    """Auto-scale a CAD figure: $8.43M / $2.69M / $216K."""
+    if v >= 10e6:
+        return f"${v/1e6:.1f}M"
+    if v >= 1e6:
+        return f"${v/1e6:.2f}M"
+    return f"${v/1e3:.0f}K"
+
+
 def dual_bar_charts(c, x, y_top, w, h, left_title, left_series, right_title, right_series,
-                    left_fmt=lambda v: f"${v/1e6:.2f}M", right_fmt=lambda v: f"${v/1e3:.0f}K",
+                    left_fmt=_fmt_money, right_fmt=_fmt_money,
                     growth_on_left=True):
     """Two side-by-side bar charts (e.g. Revenue | Normalized EBITDA).
     series: [(label, value), ...]. Growth % callouts drawn between left bars."""
