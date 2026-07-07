@@ -62,16 +62,16 @@ def draw_front_cover(c, title="", subtitle="", date="", logo_stacked_path=None,
         except Exception:
             pass
 
-    # Gold vertical accent rule on the left edge (echoes brand-guide cover)
-    c.setFillColor(GOLD)
-    c.rect(MARGIN - 20, MARGIN, 6, H - MARGIN * 2, fill=1, stroke=0)
+    # (Rule 6: NO stray gold vertical rule at the left edge.)
 
-    # Stacked logo in the upper center
+    # Stacked logo, upper center — LARGE (rule 4). Trim padding so the logo
+    # renders at its true size; size from real aspect ratio, not a fixed box.
     if logo_stacked_path and os.path.isfile(logo_stacked_path):
         try:
-            logo_w, logo_h = 200, 140
-            c.drawImage(logo_stacked_path,
-                        W / 2 - logo_w / 2, H * 0.68,
+            trimmed = trim_image(logo_stacked_path)
+            logo_w = 250
+            logo_h = logo_w * image_ratio(trimmed)
+            c.drawImage(trimmed, W / 2 - logo_w / 2, H * 0.70,
                         logo_w, logo_h,
                         preserveAspectRatio=True, mask='auto')
         except Exception:
@@ -82,31 +82,28 @@ def draw_front_cover(c, title="", subtitle="", date="", logo_stacked_path=None,
         c.setFillColor(GOLD)
         c.drawCentredString(W / 2, H * 0.72, "SCALEPOINT M&A")
 
-    # Thin gold horizontal accent rule
-    rule_w = 140
-    c.setFillColor(GOLD)
-    c.rect(W / 2 - rule_w / 2, H * 0.58, rule_w, 2, fill=1, stroke=0)
+    # (Rule 1: NO decorative rule under the logo — the lockup has its own pill.)
 
-    # Title (serif, off-white)
+    # Title (serif, off-white) — wraps, never overhangs margins (rule 6)
     if title:
-        c.setFont(FONT_DISPLAY_BOLD, 30)
+        size = 30
         c.setFillColor(WHITE)
-        # Wrap long titles to two lines
-        if c.stringWidth(title, FONT_DISPLAY_BOLD, 30) > W - 100:
-            words = title.split()
-            mid = len(words) // 2
-            line1 = " ".join(words[:mid])
-            line2 = " ".join(words[mid:])
-            c.drawCentredString(W / 2, H * 0.50, line1)
-            c.drawCentredString(W / 2, H * 0.50 - 36, line2)
-        else:
-            c.drawCentredString(W / 2, H * 0.50, title)
+        lines = _wrap_text(c, title, W - 2 * MARGIN - 20, FONT_DISPLAY_BOLD, size)
+        c.setFont(FONT_DISPLAY_BOLD, size)
+        ty = H * 0.50
+        for ln in lines:
+            c.drawCentredString(W / 2, ty, ln)
+            ty -= size + 6
 
-    # Subtitle (italic serif, gold)
+    # Subtitle (italic serif, GOLD — rule 2: never GOLD_LIGHT as text), wrapped
     if subtitle:
-        c.setFont("Times-Italic", 14)
-        c.setFillColor(GOLD_LIGHT)
-        c.drawCentredString(W / 2, H * 0.40, subtitle)
+        c.setFillColor(GOLD)
+        sub_lines = _wrap_text(c, subtitle, W - 2 * MARGIN - 40, FONT_DISPLAY_ITALIC, 14)
+        c.setFont(FONT_DISPLAY_ITALIC, 14)
+        sy = H * 0.40
+        for ln in sub_lines:
+            c.drawCentredString(W / 2, sy, ln)
+            sy -= 19
 
     # Date (sans, muted)
     if date:
@@ -117,6 +114,114 @@ def draw_front_cover(c, title="", subtitle="", date="", logo_stacked_path=None,
     # Gold baseline rule
     c.setFillColor(GOLD)
     c.rect(MARGIN, 70, W - 2 * MARGIN, 1.5, fill=1, stroke=0)
+
+
+# =============================================================================
+# HERO & INFO BADGES (rules 11, 21, 24)
+# =============================================================================
+def hero_badge(c, x, y, w, h, num, label):
+    """Cover hero badge: SEPIA face + gold top accent sliver (rule 11);
+    deep-green number, standard gold descriptor (rule 22)."""
+    c.setFillColor(GOLD)
+    c.roundRect(x, y, w, h, CORNER_R, fill=1, stroke=0)
+    c.setFillColor(SEPIA)
+    c.roundRect(x, y, w, h - 5, CORNER_R, fill=1, stroke=0)
+    c.setFont(FONT_DISPLAY_BOLD, 24)
+    c.setFillColor(DEEP_GREEN)
+    c.drawCentredString(x + w / 2, y + h / 2 - 4, str(num))
+    draw_descriptor(c, x + w / 2, y + 15, label)
+
+
+def info_badge(c, cx, y, w, h, lines=None, name="", role="", phone="",
+               email="", website="", accent_color=None, face=None):
+    """Contact/info badge (rules 16, 21, 24): WHITE face + top accent.
+    Accent = GOLD on dark pages (back cover), DEEP_GREEN on light interior
+    pages. Name serif, role gold, then phone / email / website EACH ON THEIR
+    OWN LINE — never combined.
+    Either pass `lines` = [(text, font, size, color), ...] or the named fields."""
+    if face is None:
+        face = WHITE
+    if accent_color is None:
+        accent_color = GOLD
+    if lines is None:
+        lines = [(name, FONT_DISPLAY_BOLD, 18, DEEP_GREEN)] if name else []
+        if role:
+            lines.append((role, FONT_BODY, 11, LABEL_GOLD))
+        for item in (phone, email, website):
+            if item:
+                lines.append((item, FONT_BODY, 11, DEEP_GREEN))
+    x = cx - w / 2
+    c.setFillColor(accent_color)
+    c.roundRect(x, y, w, h, CORNER_R, fill=1, stroke=0)
+    c.setFillColor(face)
+    c.roundRect(x, y, w, h - 5, CORNER_R, fill=1, stroke=0)
+    leads = [sz + 7 for (_, _, sz, _) in lines]
+    total = sum(leads)
+    ty = y + (h - 5) / 2 + total / 2 - leads[0] + 2
+    for (txt, fn, sz, col), ld in zip(lines, leads):
+        c.setFont(fn, sz)
+        c.setFillColor(col)
+        c.drawCentredString(cx, ty, txt)
+        ty -= ld
+
+
+# =============================================================================
+# TEASER COVER — three-zone spec (rules 10, 12) — NOT the boardroom cover
+# =============================================================================
+def draw_teaser_cover(c, kicker="", title_lines=None, descriptor="",
+                      attributes_line="", metrics=None, footer_line="",
+                      logo_stacked_path=None):
+    """
+    Teaser front cover per the locked Project Eros spec. The heavy boardroom
+    cover is the WRONG default for a teaser (rule 6) — use this instead.
+
+    Even vertical rhythm between four groups (rule 12):
+      LOGO (large, trimmed) /
+      TITLE GROUP (kicker · serif title · muted descriptor — kicker sits
+        clearly ABOVE the title; codename goes IN the kicker line, never as
+        standalone bright text) /
+      HERO UNIT (attributes line ABOVE three sepia hero badges, centered
+        as one unit) /
+      PAGE FOOTER (pinned to page bottom, excluded from zone centering).
+    """
+    c.setFillColor(DEEP_GREEN)
+    c.rect(0, 0, W, H, fill=1, stroke=0)
+
+    # ---- LOGO (large, trimmed)
+    if logo_stacked_path and os.path.isfile(logo_stacked_path):
+        trimmed = trim_image(logo_stacked_path)
+        lw = 250
+        lh = lw * image_ratio(trimmed)
+        c.drawImage(trimmed, W / 2 - lw / 2, 578, lw, lh,
+                    mask='auto', preserveAspectRatio=True)
+
+    # ---- TITLE GROUP
+    if kicker:
+        spaced(c, W / 2, 483, kicker.upper(), FONT_BODY_BOLD, 10, GOLD, 2.5, center=True)
+    c.setFont(FONT_DISPLAY_BOLD, 32)
+    c.setFillColor(WHITE)
+    ty = 437
+    for ln in (title_lines or []):
+        c.drawCentredString(W / 2, ty, ln)
+        ty -= 38
+    if descriptor:
+        c.setFont(FONT_BODY, 11)
+        c.setFillColor(HexColor("#C4B890"))
+        c.drawCentredString(W / 2, 367, descriptor)
+
+    # ---- HERO UNIT (attributes line on top of the badges)
+    if attributes_line:
+        spaced(c, W / 2, 262, attributes_line.upper(), FONT_BODY_BOLD, 7.5, GOLD, 0.8, center=True)
+    if metrics:
+        bw, bh, gap = 152, 78, 18
+        x0 = (W - (len(metrics) * bw + (len(metrics) - 1) * gap)) / 2
+        for i, (num, label) in enumerate(metrics):
+            hero_badge(c, x0 + i * (bw + gap), 160, bw, bh, num, label)
+
+    # ---- PAGE FOOTER (pinned)
+    if footer_line:
+        spaced(c, W / 2, 55, footer_line.upper(), FONT_BODY_BOLD, 8,
+               HexColor("#C4B890"), 1.5, center=True)
 
 
 # =============================================================================
@@ -263,60 +368,55 @@ def _draw_envelope_icon(c, x, y, size, color=None):
     c.restoreState()
 
 
-def draw_back_cover(c, logo_white_path=None, year="2026",
+def draw_back_cover(c, logo_path=None, year="2026",
                     tagline="We've built. We've bought. We've sold.",
-                    website="www.scalepointma.com",
-                    email="info@scalepointma.com"):
-    """Deep-green back cover with white logo, gold accent, tagline, contact."""
-    c.setFillColor(DEEP_GREEN_DK)
+                    website="scalepointma.com",
+                    email="info@scalepointma.com",
+                    contact_name="", contact_role="", contact_phone="",
+                    logo_white_path=None):
+    """Deep-green back cover: large trimmed logo, 21pt gold italic tagline
+    (rule 15), contact in a WHITE info badge with GOLD accent (rules 21/24).
+
+    Rule 5: pass the STACKED logo (its background is exactly DEEP_GREEN and
+    blends). logo-white.png has an opaque BLACK background baked in and will
+    show as a black box: never place it on a colour field.
+    (`logo_white_path` kept as a deprecated alias.)"""
+    if logo_path is None:
+        logo_path = logo_white_path   # deprecated alias
+
+    c.setFillColor(DEEP_GREEN)
     c.rect(0, 0, W, H, fill=1, stroke=0)
 
-    # White logo, upper center
-    if logo_white_path and os.path.isfile(logo_white_path):
+    # Large trimmed logo, upper center (rules 1 & 4: big, and NO rule under it)
+    if logo_path and os.path.isfile(logo_path):
         try:
-            c.drawImage(logo_white_path,
-                        W / 2 - 110, H * 0.60, 220, 90,
+            trimmed = trim_image(logo_path)
+            lw = 250
+            lh = lw * image_ratio(trimmed)
+            c.drawImage(trimmed, W / 2 - lw / 2, H * 0.60, lw, lh,
                         preserveAspectRatio=True, mask='auto')
         except Exception:
             pass
 
-    # Gold accent rule
-    line_w = 140
+    # Tagline: italic serif, GOLD (rule 2), LARGER (rule 15: ~21pt)
+    c.setFont(FONT_DISPLAY_ITALIC, 21)
     c.setFillColor(GOLD)
-    c.rect(W / 2 - line_w / 2, H * 0.55, line_w, 2, fill=1, stroke=0)
+    c.drawCentredString(W / 2, H * 0.50, tagline)
 
-    # Tagline — italic serif, gold
-    c.setFont("Times-Italic", 14)
-    c.setFillColor(GOLD_LIGHT)
-    c.drawCentredString(W / 2, H * 0.48, tagline)
-
-    # Contact block
-    contact_y_web = H * 0.36
-    contact_y_email = H * 0.36 - 22
-    icon_size = 11
-    icon_gap = 8
-
-    # Website
-    web_tw = c.stringWidth(website, FONT_BODY, 11)
-    web_total_w = icon_size + icon_gap + web_tw
-    web_start_x = W / 2 - web_total_w / 2
-    _draw_globe_icon(c, web_start_x, contact_y_web - 1, icon_size, GOLD)
-    c.setFont(FONT_BODY, 11)
-    c.setFillColor(WHITE)
-    c.drawString(web_start_x + icon_size + icon_gap, contact_y_web, website)
-
-    # Email
-    email_tw = c.stringWidth(email, FONT_BODY, 11)
-    email_total_w = icon_size + icon_gap + email_tw
-    email_start_x = W / 2 - email_total_w / 2
-    _draw_envelope_icon(c, email_start_x, contact_y_email - 1, icon_size, GOLD)
-    c.setFont(FONT_BODY, 11)
-    c.setFillColor(WHITE)
-    c.drawString(email_start_x + icon_size + icon_gap,
-                 contact_y_email, email)
+    # Contact block: white info badge, gold accent, each line its own row
+    if contact_name:
+        info_badge(c, W / 2, H * 0.24, 380, 132,
+                   name=contact_name, role=contact_role,
+                   phone=contact_phone, email=email, website=website,
+                   accent_color=GOLD, face=WHITE)
+    else:
+        info_badge(c, W / 2, H * 0.28, 380, 84, lines=[
+            (website, FONT_BODY, 11, DEEP_GREEN),
+            (email, FONT_BODY, 11, DEEP_GREEN),
+        ], accent_color=GOLD, face=WHITE)
 
     # Copyright micro-copy
     c.setFont(FONT_BODY, 8)
     c.setFillColor(HexColor("#8A9995"))
-    c.drawCentredString(W / 2, H * 0.15,
+    c.drawCentredString(W / 2, H * 0.11,
                         f"\u00a9 {year} ScalePoint M&A.  Confidential.")

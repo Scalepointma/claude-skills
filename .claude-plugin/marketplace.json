@@ -1,13 +1,17 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "scalepoint-skills",
-  "description": "ScalePoint M&A internal Claude Code skills — report format, seller sub-ICP, meeting CRM logging, and more.",
-  "owner": { "name": "ScalePoint M&A" },
+  "description": "ScalePoint M&A internal Claude Code skills \u2014 report format, seller sub-ICP, meeting CRM logging, and more.",
+  "owner": {
+    "name": "ScalePoint M&A"
+  },
   "plugins": [
     {
       "name": "scalepoint-report-format",
       "description": "Produces boardroom-quality, brand-compliant ScalePoint PDFs (CIMs, teasers, valuation reports, brochures, proposals) using ReportLab.",
-      "author": { "name": "ScalePoint M&A" },
+      "author": {
+        "name": "ScalePoint M&A"
+      },
       "category": "productivity",
       "source": {
         "source": "git-subdir",
@@ -18,7 +22,9 @@
     {
       "name": "scalepoint-seller-subicp",
       "description": "Identify a seller's Sub-ICP (A-G) during intake conversations and route through the Match Matrix.",
-      "author": { "name": "ScalePoint M&A" },
+      "author": {
+        "name": "ScalePoint M&A"
+      },
       "category": "productivity",
       "source": {
         "source": "git-subdir",
@@ -29,7 +35,9 @@
     {
       "name": "scalepoint-meeting-crm",
       "description": "Transcribe a meeting recording and populate a seller deal or buyer profile in HubSpot. Handles audio files via whisper and pasted transcripts.",
-      "author": { "name": "ScalePoint M&A" },
+      "author": {
+        "name": "ScalePoint M&A"
+      },
       "category": "productivity",
       "source": {
         "source": "git-subdir",
@@ -39,8 +47,10 @@
     },
     {
       "name": "scalepoint-intake",
-      "description": "Guided buyer or seller intake conversation that collects all required HubSpot fields and writes the record — Company, Contact, and Deal — in one flow.",
-      "author": { "name": "ScalePoint M&A" },
+      "description": "Guided buyer or seller intake conversation that collects all required HubSpot fields and writes the record \u2014 Company, Contact, and Deal \u2014 in one flow.",
+      "author": {
+        "name": "ScalePoint M&A"
+      },
       "category": "productivity",
       "source": {
         "source": "git-subdir",
@@ -50,8 +60,10 @@
     },
     {
       "name": "scalepoint-teaser",
-      "description": "Build a confidential buyer teaser — collects deal data, verifies EBITDA, outputs a branded HTML teaser document in ScalePoint visual style.",
-      "author": { "name": "ScalePoint M&A" },
+      "description": "Build a confidential one-page buyer teaser as a branded print-ready PDF \u2014 content firewall (teaser vs CIM), math + blind gates, single-page layout engine.",
+      "author": {
+        "name": "ScalePoint M&A"
+      },
       "category": "productivity",
       "source": {
         "source": "git-subdir",

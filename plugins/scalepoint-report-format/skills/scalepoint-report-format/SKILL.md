@@ -21,51 +21,19 @@ description: >
 ## Step 0: Read the Full Reference Files (MANDATORY)
 
 This skill is intentionally lean. Full design specs and helper modules live
-in the skill folder. **Read these BEFORE writing ANY code:**
+**in this skill's folder** — the directory containing this SKILL.md. You know
+that path because you just read this file; call it `ref_dir`. Never search
+absolute or machine-specific paths for it.
 
 ```python
-import glob, os
-
-# Path search order:
-# 1. Delta Mac Mini (local development machine)
-# 2. Claude plugin install location (any machine after `claude plugins add`)
-# 3. Cowork / remote session fallback
-SEARCH_PATTERNS = [
-    "/Users/delta/delta/templates/scalepoint-report-format",
-    os.path.expanduser("~/.claude/plugins/scalepoint-report-format"),
-    os.path.expanduser("~/.claude/skills/scalepoint-report-format"),
-    os.path.expanduser("~/Library/Application Support/claude/plugins/scalepoint-report-format"),
-]
-
-ref_dir = None
-for path in SEARCH_PATTERNS:
-    if os.path.isdir(path) and os.path.isfile(os.path.join(path, "BRAND-GUIDE.md")):
-        ref_dir = path
-        break
-
-if ref_dir is None:
-    # Cowork / remote session glob fallback
-    for pattern in [
-        "/sessions/*/mnt/*/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/**/scalepoint-report-format*/BRAND-GUIDE.md",
-        "/sessions/*/mnt/.claude/skills/scalepoint*/BRAND-GUIDE.md",
-        os.path.expanduser("~/.claude/*/scalepoint-report-format*/BRAND-GUIDE.md"),
-    ]:
-        found = glob.glob(pattern, recursive=True)
-        if found:
-            ref_dir = os.path.dirname(found[0])
-            break
-
-if ref_dir is None:
-    raise FileNotFoundError(
-        "Cannot find scalepoint-report-format skill files. "
-        "Install via: claude plugins add https://github.com/Scalepointma/claude-skills"
-    )
-
+import sys, os
+ref_dir = "<directory containing this SKILL.md>"
 scripts_dir = os.path.join(ref_dir, "scripts")
 assets_dir  = os.path.join(ref_dir, "assets")
-import sys; sys.path.insert(0, scripts_dir)
+sys.path.insert(0, scripts_dir)
 ```
+
+**Read these BEFORE writing ANY code:**
 
 Read from `ref_dir`:
 1. **BRAND-GUIDE.md** — colors, fonts, page frame, element heights, visual
@@ -100,36 +68,18 @@ Before choosing ANY layouts, inventory the source content:
 ## Step 2: Asset Discovery & Module Import
 
 ```bash
-pip install reportlab Pillow pdf2image --break-system-packages
+python3 -c "import reportlab, PIL, pypdfium2" 2>/dev/null || \
+  python3 -m pip install reportlab Pillow pypdfium2 --quiet --break-system-packages
 ```
 
 ```python
-import sys, glob, os
-
-SKILL_LOCAL = "/Users/delta/delta/templates/scalepoint-report-format"
-
-scripts_dir = None
-if os.path.isdir(os.path.join(SKILL_LOCAL, "scripts")):
-    scripts_dir = os.path.join(SKILL_LOCAL, "scripts")
-else:
-    for pattern in [
-        "/sessions/*/mnt/*/scalepoint-report-format*/scripts",
-        "/sessions/*/mnt/**/scalepoint-report-format*/scripts",
-        "/sessions/*/mnt/.claude/skills/scalepoint*/scripts",
-        "/sessions/*/mnt/outputs/scalepoint-report-format/scripts",
-    ]:
-        found = glob.glob(pattern, recursive=True)
-        if found:
-            scripts_dir = found[0]
-            break
-
-if scripts_dir:
-    sys.path.insert(0, scripts_dir)
+import sys, os
+sys.path.insert(0, scripts_dir)   # scripts_dir / assets_dir from Step 0
 
 from scalepoint_pdf import *
 from reportlab.pdfgen import canvas
 
-assets = discover_assets()
+assets = discover_assets(extra_dirs=[assets_dir])
 ```
 
 Available assets (canonical names): `logo-primary`, `logo-stacked`,
@@ -147,18 +97,24 @@ See DESIGN-RULES.md §3 for full patterns. Quick picks:
 - **Brochure / leave-behind**: `draw_brochure_hero()` OR
   `draw_duotone_hero()` + `draw_logo_pill()` → `draw_pillar_row()`
   (Build / Buy / Sell) → narrative → `draw_contact_strip()`.
-- **Teaser / blind profile**: `draw_page_setup()` from page 1 (no cover) →
-  serif section title → body + stat row + pull-quote → footnote
-  confidentiality line.
+- **Teaser / blind profile**: use the dedicated `scalepoint-teaser` skill
+  (locked one-page format). For a teaser-style cover inside another doc:
+  `draw_teaser_cover()` (three-zone, sepia hero badges) — NEVER the heavy
+  boardroom `draw_front_cover()` on a teaser.
 
 ## Step 4: Plan ALL Pages, Then Build
 
 Plan every page with y-coordinates BEFORE coding. Use the Page Plan
 Template from DESIGN-RULES.md §1.
 
-**The #1 visual rule:** white cards with gold/teal/olive accent bars.
-NO dark-filled cards (max 1 reverse-tint per page for hero elements).
-10pt corners everywhere.
+**The #1 visual rule:** white cards with accent bars — accent is a SINGLE
+consistent GOLD by default; break it up only with the deliberate palette
+helpers (`card_grid_rows` per-row, `cards_by_column` per-column,
+`draw_stat_row(accent_color=DEEP_GREEN)` for a second row). NO dark-filled
+cards (max 1 reverse-tint per page). 10pt corners everywhere.
+NO em dashes in any copy (commas/colons; en dash for numeric ranges only).
+Descriptors under numbers are always the standard ALL-CAPS gold 8pt
+(`draw_descriptor`). GOLD_LIGHT is never a text colour.
 
 **The #1 layout rule:** use `ensure_space()` before drawing any element
 near the bottom. Use `draw_title_group()` for all kicker+subheading
@@ -185,23 +141,29 @@ All drawing functions return the y-position after drawing, for stacking.
 | `draw_title_group(c, x, y, kicker, subheading, intro_text, section_title, new_section)` | Complete title group with internal spacing |
 | `draw_section_title(c, x, y, text, size=28)` | Large serif section title |
 | `draw_kicker(c, x, y, text)` | Letter-spaced uppercase, gold |
-| `draw_subheading(c, x, y, text, size=22)` | Serif sub-section heading |
+| `draw_subheading(c, x, y, text, size=20)` | Serif sub-section heading — 20pt STANDARD (hierarchy: 28 heading > 20 subhead > hero/caption > 10 body) |
 | `draw_body_text(c, x, y, text)` | 10pt Helvetica body |
 | `draw_divider(c, x, y, ...)` | Thin gold accent line |
 
 ### Cards
 | Function | Purpose |
 |---|---|
-| `draw_card(c, x, y, w, h, title, body, accent_color, accent_position, accent_index)` | Single card with accent bar |
-| `draw_card_grid(c, x, y, cards, cols, card_h, gap, auto_height)` | Grid with color adjacency |
-| `draw_numbered_card(c, x, y, w, h, number, kicker, title, body)` | Numbered badge card — for steps / phases |
+| `draw_card(c, x, y, w, h, title, body, accent_color, accent_position)` | Single card with accent bar (default GOLD) |
+| `card_grid_rows(c, x, y, cards, cols, row_colors)` | Grid, one colour PER ROW (gold/green/olive) — the approved highlight grid |
+| `cards_colored(c, x, y, cards, colors, cols)` | One row, each card its own colour (persona cards) |
+| `draw_card_grid(c, x, y, cards, cols, card_h, gap, auto_height)` | Plain grid (single gold accent) |
+| `draw_numbered_card(c, x, y, w, h, number, kicker, title, body)` | Gold card + DEEP-GREEN number badge; single-line rows vertically centered |
+| `kv_card(c, x, y, w, h, value, label, accent_color)` | Value card: serif value + standard gold descriptor |
+| `cards_by_column(c, x, y, cards, cols, col_colors, card_h)` | Value grid, one colour PER COLUMN (2 gold / 2 green / 2 olive) |
 | `calculate_card_height(c, title, body, width)` | Measure minimum card height |
 
 ### Stats
 | Function | Purpose |
 |---|---|
-| `draw_stat_box(c, x, y, w, h, number, label, accent_color)` | Single stat with big serif number |
-| `draw_stat_row(c, x, y, stats, gap)` | Row of stat boxes, auto color rotation |
+| `draw_stat_box(c, x, y, w, h, number, label, accent_color)` | Single stat; descriptor is ALWAYS the standard gold |
+| `draw_stat_row(c, x, y, stats, gap, accent_color)` | Row of stat boxes, ONE colour per row (default GOLD; 2nd row: DEEP_GREEN) |
+| `draw_descriptor(c, cx, y, label)` | THE standard descriptor: ALL CAPS, #A9803A, 8pt, letter-spaced |
+| `spaced(c, x, y, text, font, size, color, tracking, center, right)` | Letter-spaced caps text |
 
 ### Callouts
 | Function | Purpose |
@@ -221,11 +183,14 @@ All drawing functions return the y-position after drawing, for stacking.
 ### Covers & Brochure
 | Function | Purpose |
 |---|---|
-| `draw_front_cover(c, title, subtitle, date, logo_stacked_path, cover_bg_path)` | Boardroom dark-green cover |
+| `draw_front_cover(c, title, subtitle, date, logo_stacked_path, cover_bg_path)` | Boardroom dark-green cover (large trimmed logo, no stray rules) |
+| `draw_teaser_cover(c, kicker, title_lines, descriptor, attributes_line, metrics, footer_line, logo_stacked_path)` | Three-zone teaser cover: logo / title group / sepia hero badges; codename in the kicker |
+| `hero_badge(c, x, y, w, h, num, label)` | Sepia face + gold top accent hero metric badge |
+| `info_badge(c, cx, y, w, h, name=, role=, phone=, email=, website=, accent_color=)` | Contact badge: white face; gold accent on dark pages, deep-green on light; each line its own row |
 | `draw_brochure_hero(c, y_top, height, hero_image_path, title_text, subtitle_text)` | Canva-style photo hero with title pill |
 | `draw_duotone_hero(c, x, y_top, w, h, image_path, overlay_opacity, gold_waves)` | Duotone photo + gold topographic lines |
 | `draw_logo_pill(c, x, y, w, h, logo_icon_path, logo_text)` | Gold-outlined [icon] [wordmark] pill |
-| `draw_back_cover(c, logo_white_path, year, tagline, website, email)` | Deep-green back with contacts |
+| `draw_back_cover(c, logo_path, year, tagline, website, email, contact_name, contact_role, contact_phone)` | Deep-green back: 21pt gold tagline + white contact info badge; pass the STACKED logo |
 
 ### M&A-Specific
 | Function | Purpose |
@@ -247,8 +212,10 @@ All drawing functions return the y-position after drawing, for stacking.
 | `measure_text_height(c, text, max_width, font, size, leading)` | Calculate text height without drawing |
 | `will_fit(y, height)` | Check element fits above footer zone |
 | `remaining_height(y)` | Points of space remaining |
-| `clean_text(text)` | Normalize quotes, strip control chars |
-| `discover_assets(extra_dirs)` | Find all ScalePoint brand assets |
+| `clean_text(text)` | Normalize quotes, strip control chars, ENFORCE the dash rule (em dash → comma; en dash only in numeric ranges) |
+| `assert_no_em_dash(*texts)` | Hard check for generated copy — raises on any em dash |
+| `discover_assets(extra_dirs)` | Find brand assets in the skill's own assets/ folder (auto-trims logos) |
+| `trim_image(path)` / `image_ratio(path)` | Trim logo padding; true aspect ratio for sizing |
 
 ### Constants
 | Name | Value | Purpose |
@@ -262,10 +229,10 @@ All drawing functions return the y-position after drawing, for stacking.
 ## Step 6: Visual Verification (MANDATORY)
 
 ```python
-from pdf2image import convert_from_path
-images = convert_from_path('output.pdf', dpi=150)
-for i, img in enumerate(images):
-    img.save(f'page_{i+1}.png')
+import pypdfium2 as pdfium
+doc = pdfium.PdfDocument('output.pdf')
+for i, page in enumerate(doc):
+    page.render(scale=2).to_pil().save(f'page_{i+1}.png')
 ```
 
 View EVERY page as PNG. Check against the 29-item anti-pattern checklist

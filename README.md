@@ -1,40 +1,36 @@
 # ScalePoint M&A — Claude Skills
 
-Internal Claude Code plugins for the ScalePoint team.
+Internal Claude skills for the ScalePoint team. **This repo is the single
+source of truth** — all skill changes are made here and released from here.
+Never edit a skill in a chat session copy.
 
 ## Skills
 
-| Plugin | Purpose |
+| Skill | Purpose |
 |---|---|
-| `scalepoint-report-format` | On-brand PDFs — CIMs, teasers, valuation reports, brochures, proposals |
-| `scalepoint-teaser` | Confidential buyer teaser — collects data, verifies EBITDA, outputs markdown + branded HTML |
+| `scalepoint-teaser` | One-page blind buyer teaser as a branded PDF (content firewall, math + blind gates) |
+| `scalepoint-report-format` | Boardroom PDFs — CIMs, valuation reports, brochures, proposals |
 | `scalepoint-intake` | Buyer or seller intake — guided conversation → HubSpot Company + Contact + Deal |
 | `scalepoint-meeting-crm` | Transcribe a meeting recording → populate HubSpot seller deal or buyer profile |
-| `scalepoint-seller-subicp` | Identify seller Sub-ICP (A–G) during intake and route through Match Matrix |
+| `scalepoint-seller-subicp` | Identify seller Sub-ICP (A–G) and route through the Match Matrix |
 
-## Install (one-time per machine)
+## How the team gets skills (claude.ai / Cowork — everyone)
 
-```bash
-claude plugins add https://github.com/Scalepointma/claude-skills
-```
+Skills are distributed as **organization skills on claude.ai**. No installs.
 
-Updates are automatic — when skills are pushed to this repo, Claude Code picks them up on next sync.
+1. Delta builds a zip per skill from this repo (`dist/` via `make-dist.sh`)
+2. An org admin (Jodi) uploads each zip once: **claude.ai → Settings →
+   Capabilities → Skills → Upload skill**, toggle on for the organization
+3. Everyone in the org has them immediately, in Cowork and claude.ai chat
+4. Updates: rebuild zip → re-upload (replaces the old version)
 
-## For Alina — first-time setup
+## How Delta's Mac gets skills (Claude Code)
 
-1. Open Claude Code (CoWork)
-2. In any chat, type:
-   ```
-   ! claude plugins add https://github.com/Scalepointma/claude-skills
-   ```
-3. Start a new chat — all 5 skills are now active
+The working clone at `~/delta/repos/claude-skills` plus the plugin
+marketplace (`/plugin marketplace add Scalepointma/claude-skills`).
 
-## Trigger phrases
+## Releasing a change
 
-| Skill | Say something like... |
-|---|---|
-| `scalepoint-teaser` | "write a teaser for [business]", "/teaser", "format a blind profile" |
-| `scalepoint-intake` | "buyer intake", "seller intake", "add a new buyer", "fill out the form for [seller]" |
-| `scalepoint-report-format` | "create a PDF", "make a CIM", "build a valuation report", "ScalePoint brand" |
-| `scalepoint-meeting-crm` | "transcribe this meeting", "log this intake call", drops audio file |
-| `scalepoint-seller-subicp` | "classify this seller", "what sub-ICP is this seller", "run the match matrix" |
+1. Branch → edit skill in `plugins/<name>/skills/<name>/` → PR → Jodi sign-off → merge
+2. Run `./make-dist.sh` → fresh zips in `dist/`
+3. Give the zips to Jodi for re-upload (step 2 above)

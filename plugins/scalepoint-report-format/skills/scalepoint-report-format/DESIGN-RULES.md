@@ -71,9 +71,30 @@ Map source content to element types using this tree.
 
 **Supporting / fine print**
 - Disclaimers → `draw_footnote()` (NEVER in a callout box)
-- Key takeaway → `draw_callout_bar()` (full-width dark bar)
-- Pull-quote / emphasis → `draw_light_callout()` (tinted bg + left accent)
+- Key takeaway / pull-quote / emphasis → `draw_light_callout()` — the
+  DEFAULT callout is gold-on-gold (pale gold bg + gold accent + deep-green
+  text). `draw_callout_bar()` (dark bar) is RARE, exceptional cases only.
 - Hero stat / headline summary → `draw_reverse_tint()` (max 1 per page)
+
+**Contact blocks**
+- Deal-lead contact → `info_badge()` — WHITE face + top accent (GOLD on a
+  dark page, DEEP_GREEN on a light interior page); name serif, role gold,
+  then phone / email / website EACH ON ITS OWN LINE. Same badge on the back
+  cover and any Next Steps page. Never cram contact into plain text lines.
+
+**Accent-colour discipline (ALWAYS)**
+- Default accent is a single consistent GOLD. Break it up DELIBERATELY and
+  EVENLY, never randomly:
+  - highlight card grids → `card_grid_rows(row_colors=[GOLD, DEEP_GREEN, OLIVE])`
+    (one colour per row)
+  - 6-up value grids → `cards_by_column(col_colors=[GOLD, DEEP_GREEN, OLIVE])`
+    (one colour per column: 2 gold / 2 green / 2 olive)
+  - a second stat row on a page → `draw_stat_row(accent_color=DEEP_GREEN)`
+  - numbered rows → gold card accent + deep-green number badge (built into
+    `draw_numbered_card`)
+- The small descriptor under ANY hero number / stat / value card is always
+  THE standard: ALL CAPS, `LABEL_GOLD` #A9803A, 8pt, letter-spaced
+  (`draw_descriptor`) — even when the element's accent bar is green or olive.
 
 ---
 
@@ -92,16 +113,13 @@ Page 2: small hero band + meet-the-team cards (2-col)
         draw_contact_strip()
 ```
 
-### Teaser (Blind Profile, 1-2 pages)
-```
-Page 1: small branded header (skip full cover — it's a teaser)
-        draw_section_title("Project [Codename]")
-        draw_subheading("Industry | Province | Revenue Band")
-        body: 3-paragraph business overview
-        draw_stat_row([Revenue, EBITDA, ARR growth])
-        draw_light_callout("Ideal Buyer Profile")
-        draw_footnote() — confidentiality notice
-```
+### Teaser (Blind Profile, 1 page)
+Teasers have their own dedicated skill (`scalepoint-teaser`) with a locked
+one-page layout, content firewall and blind rules — USE THAT SKILL, not this
+one, for teasers. If a teaser-style COVER is needed inside another document,
+use `draw_teaser_cover()` (three-zone: logo / title group / sepia hero
+badges; even vertical rhythm; codename in the kicker line only). The heavy
+boardroom `draw_front_cover()` is the wrong cover for anything teaser-like.
 
 ### CIM (Confidential Information Memorandum, 20-40 pages)
 ```
@@ -145,18 +163,32 @@ Run before every PDF is considered done. If any item is YES, fix it.
 3. Section title drawn in the header area
 4. Square corners anywhere (must be 10pt radius)
 5. More than 1 reverse-tint / dark card on a single page
-6. Same accent color on horizontally or vertically adjacent cards
+6. Random multi-colour accent mix (gold/teal/olive scattered per-card).
+   Accents are single-GOLD by default; only the deliberate per-row /
+   per-column / per-stat-row palettes may break it up.
 7. Drop shadow opacity > 0.08 (too heavy)
 8. Card without accent bar (flat card = not on-brand)
+8b. Large trailing whitespace at the end of a page or document — distribute
+    content (break flat prose into cards/personas) so a final page is never
+    half empty.
 
 **Typography bugs**
-9. Helvetica used for section title / subheading (should be Times-Bold serif)
-10. Times used for body at 10pt (readability regression; use Helvetica)
+9. Helvetica used for section title / subheading (should be serif bold)
+10. Serif used for body at 10pt (readability regression; use Helvetica)
 11. Footnote in a box (footnotes must be plain italic text)
 12. Body text < 9.5pt outside tables
 13. Table body text < 9pt
 14. Kicker not uppercase, not letter-spaced
 15. Stat number < 30pt
+15b. EM DASH anywhere in content (rule 19: rewrite with commas/colons; en
+     dash ONLY inside numeric ranges like $1.19M–$1.36M, Net 30–120)
+15c. Subhead hierarchy broken: subhead must be 20pt serif — visibly larger
+     than hero/caption text, smaller than the 28pt page heading, with real
+     space above and below (a 9pt eyebrow is NOT a subhead)
+15d. Descriptor under a hero number/stat/value card that is not THE standard
+     (ALL CAPS, LABEL_GOLD #A9803A, 8pt, letter-spaced)
+15e. Bright yellow GOLD_LIGHT #F6E279 used as a TEXT colour (it exists only
+     inside the gold gradient bar)
 
 **Color bugs**
 16. Pure black anywhere (body text should be `BODY_COLOR` = DEEP_GREEN)
@@ -174,9 +206,22 @@ Run before every PDF is considered done. If any item is YES, fix it.
 26. Currency symbols inconsistent (mix of CAD $ and US $)
 
 **Brand bugs**
-27. Logo stretched / wrong aspect ratio
-28. White logo on cream / pale background (contrast fail)
+27. Logo stretched / wrong aspect ratio, or rendered tiny because the PNG's
+    dead padding wasn't trimmed (always place logos via `trim_image()` /
+    `discover_assets()`, which trims automatically)
+28. White logo on cream / pale background (contrast fail) — AND
+    `logo-white.png` on ANY colour field (it has an opaque black background
+    baked in; use `logo-stacked` on deep green)
 29. Photo used full-color instead of duotone (off-brand)
+30. Decorative rule/line drawn directly under the ScalePoint logo (the
+    lockup already has its wordmark pill)
+31. Blank table header cell (every column needs a real header, e.g.
+    "Adjustment", "Component" — `draw_table` now raises on this)
+32. Contact block with phone + email on one line (each on its OWN line,
+    inside the standard `info_badge`)
+33. Cover: kicker touching the title, codename as standalone bright text
+    (codename lives IN the kicker line), or uneven vertical rhythm between
+    logo / title group / hero unit / footer
 
 ---
 

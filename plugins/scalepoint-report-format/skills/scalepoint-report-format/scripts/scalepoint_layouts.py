@@ -252,9 +252,9 @@ def draw_contact_strip(c, x, y, w=None, phone="", email="", website="",
     c.setFillColor(DEEP_GREEN)
     c.roundRect(x, bar_y, w, bar_h, CORNER_R, fill=1, stroke=0)
 
-    # Contact text inside
+    # Contact text inside (rule 2: GOLD_LIGHT is never a text colour)
     c.setFont(FONT_BODY, 9)
-    c.setFillColor(GOLD_LIGHT)
+    c.setFillColor(WHITE)
     items = [s for s in [phone, email, website] if s]
     if items:
         sep = "   \u2022   "
