@@ -32,7 +32,7 @@ before your first build).
 | Proof bullets (single line each) | ≤ 7 |
 | Hero metric strip | exactly 3 |
 | Revenue + EBITDA bar charts with YoY growth % | 3 fiscal years |
-| Industry overview line (optional) | ≤ 2 sentences |
+| Industry overview (KEY — see Step 3.5) | ≤ 2 sentences, double-vetted |
 | Momentum callout (optional, e.g. "tracking ahead") | 1 line pattern |
 | Numbered growth opportunities | ≤ 7 |
 | Transaction column: Structure / FYE / Transition / Pricing | 4 rows; Pricing = "Available on NDA" |
@@ -93,7 +93,26 @@ Scan every string that will appear on the page and remove/generalize:
 Codename is used ONLY in the output filename and email subject lines, never
 in the document body.
 
-## Step 4 — Build
+## Step 3.5 — Industry gate (KEY: the Industry Overview is not optional)
+
+Buyers anchor on the market line, so it must be present AND bulletproof.
+NEVER invent industry figures, and never skip the section just because you
+don't have them — go research them:
+
+1. **Research twice, independently**: two research passes on different
+   source angles (e.g. global market size/CAGR from research firms vs
+   national statistics/industry reports). Every figure needs source name,
+   year, and URL.
+2. **Devil's-advocate vet**: adversarially attack each candidate claim —
+   try to refute it, check the sources disagree, check the estimate year is
+   stale, check the figure actually covers the segment on the page (retail
+   vs wholesale, national vs global). A claim survives only if two
+   independent sources corroborate within a reasonable range.
+3. Write ≤ 2 sentences from SURVIVING claims only, hedged to the weakest
+   corroboration ("estimated at up to…", "roughly…"). Pick figures that
+   frame the deal (market scale, growth, fragmentation/consolidation).
+4. List the claims + sources in your sign-off summary so the deal lead can
+   see the vetting. If nothing survives, say so and ask, don't pad.
 
 ```bash
 python3 -c "import reportlab, pypdfium2" 2>/dev/null || python3 -m pip install reportlab pypdfium2 --quiet --break-system-packages
